@@ -23,9 +23,10 @@ namespace NtfsStreams.ViewModels {
 
 		public IList<TabViewModelBase> Tabs => _tabs;
 
-		public DelegateCommand OpenFolderCommand { get; }
-		public DelegateCommand OpenFileCommand { get; }
-		public DelegateCommand ViewFilesCommand { get; }
+		public DelegateCommandBase OpenFolderCommand { get; }
+		public DelegateCommandBase OpenFileCommand { get; }
+		public DelegateCommandBase ViewFilesCommand { get; }
+		public DelegateCommandBase CloseTabCommand { get; }
 
 		public IFileDialogService FileDialogService = UIServicesDefaults.FileDialogService;
 		public IMessageBoxService MessageBoxService = UIServicesDefaults.MessageBoxService;
@@ -108,6 +109,8 @@ namespace NtfsStreams.ViewModels {
 			ViewFilesCommand = new DelegateCommand(() => {
 				(SelectedTab as FolderViewModel).OpenSelectedFiles(this);
 			}, () => SelectedTab is FolderViewModel).ObservesProperty(() => SelectedTab);
+
+			CloseTabCommand = new DelegateCommand<TabViewModelBase>(tab => Tabs.Remove(tab));
 		}
 
 		string BrowseForFolder() {

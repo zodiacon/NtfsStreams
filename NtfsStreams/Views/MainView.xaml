@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:NtfsStreams.Views"
              xmlns:vm="clr-namespace:NtfsStreams.ViewModels"
-             mc:Ignorable="d" 
+             mc:Ignorable="d" x:Name="This"
              d:DesignHeight="300" d:DesignWidth="300">
     <Grid>
         <Grid.RowDefinitions>
@@ -34,13 +34,16 @@
             <TabControl.ItemContainerStyle>
                 <Style TargetType="TabItem">
                     <Setter Property="MinWidth" Value="60" />
-                    <Setter Property="MaxWidth" Value="200" />
                     <Setter Property="HeaderTemplate">
                         <Setter.Value>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <Image Source="{Binding Icon}" Width="20" Height="20"/>
-                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                    <TextBlock Text="{Binding Title}" MaxWidth="200" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                    <Button Margin="8,0,0,0" BorderThickness="0" Background="Transparent" 
+                                            Command="{Binding DataContext.CloseTabCommand, ElementName=This}" CommandParameter="{Binding DataContext.SelectedTab, ElementName=This}">
+                                        <Image Source="/icons/close.ico" Width="16" Height="16" />
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </Setter.Value>

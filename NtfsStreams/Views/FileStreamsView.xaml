@@ -13,7 +13,7 @@
             <RowDefinition />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" MinWidth="250" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
         <TextBlock Grid.ColumnSpan="3" FontSize="14">
@@ -37,5 +37,6 @@
             </ListView.View>
         </ListView>
         <local:BinaryView Grid.Column="1" Margin="4" Grid.Row="2" DataContext="{Binding DataViewModel}" />
+        <GridSplitter Grid.Row="2" HorizontalAlignment="Right" Width="3" Margin="-1,0" VerticalAlignment="Stretch" Background="{DynamicResource AccentColorBrush2}" />
     </Grid>
 </UserControl>
