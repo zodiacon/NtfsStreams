@@ -28,7 +28,11 @@ namespace NtfsStreams {
 		public static extern bool FindClose(IntPtr hFind);
 
 		[DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
-		public static extern SafeFileHandle CreateFile(string filename, uint access, int share, IntPtr secAttributes, int creation, int flags, IntPtr hTemplateFile);
+		public static extern SafeFileHandle CreateFile(string filename, uint access, uint share, IntPtr secAttributes, uint creation, uint flags, IntPtr hTemplateFile);
+
+		public const uint GENERIC_READ = 0x80000000;
+		public const uint OPEN_EXISTING = 3;
+		public const uint FILE_SHARE_READ = 1;
 
 		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
 		public static extern bool CloseHandle(IntPtr handle);

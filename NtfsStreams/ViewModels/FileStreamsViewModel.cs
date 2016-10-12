@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static NtfsStreams.NativeMethods;
 
 namespace NtfsStreams.ViewModels {
 	class FileStreamsViewModel : TabViewModelBase {
@@ -41,7 +42,7 @@ namespace NtfsStreams.ViewModels {
 		private byte[] ReadStreamData(StreamViewModel stream) {
 			if (stream == null) return null;
 
-			var hFile = NativeMethods.CreateFile(Path + stream.StreamName, 0x80000000, 1, IntPtr.Zero, 3, 0, IntPtr.Zero);
+			var hFile = CreateFile(Path + stream.StreamName, GENERIC_READ, FILE_SHARE_READ, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
 			if (hFile.IsInvalid) {
 				return null;
 			}
