@@ -83,8 +83,9 @@ namespace NtfsStreams.ViewModels {
 					MessageBoxService.ShowMessage($"No streams found in any of the {total} files.", Constants.Title, MessageBoxButton.OK, MessageBoxImage.Information);
 				else {
 					var folderViewModel = new FolderViewModel(folder, files.ToArray());
-					Tabs.Add(folderViewModel);
-					SelectedTab = folderViewModel; 
+					//Tabs.Add(folderViewModel);
+					var tab = AddTab(folderViewModel);
+					SelectedTab = tab; 
 				}
 			});
 
@@ -98,8 +99,8 @@ namespace NtfsStreams.ViewModels {
 						MessageBoxService.ShowMessage("No alternate streams in file.", Constants.Title, MessageBoxButton.OK, MessageBoxImage.Information);
 						return;
 					}
-					Tabs.Add(fileStreams);
-					SelectedTab = fileStreams;
+					var tab = AddTab(fileStreams);
+					SelectedTab = tab;
 				}
 				catch (Win32Exception ex) {
 					MessageBoxService.ShowMessage(ex.Message, Constants.Title, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -111,6 +112,13 @@ namespace NtfsStreams.ViewModels {
 			}, () => SelectedTab is FolderViewModel).ObservesProperty(() => SelectedTab);
 
 			CloseTabCommand = new DelegateCommand<TabViewModelBase>(tab => Tabs.Remove(tab));
+		}
+
+		public TabViewModelBase AddTab(TabViewModelBase newTab) {
+			var tab = _tabs.FirstOrDefault(t => t.Title == newTab.Title);
+			if (tab == null)
+				Tabs.Add(tab = newTab);
+			return tab;
 		}
 
 		string BrowseForFolder() {

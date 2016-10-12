@@ -31,11 +31,11 @@ namespace NtfsStreams.ViewModels {
 		}
 
 		public void OpenSelectedFiles(MainViewModel vm) {
-			FileStreamsViewModel first = null;
+			TabViewModelBase first = null;
 			foreach (var file in SelectedFiles) {
-				vm.Tabs.Add(file);
+				var tab = vm.AddTab(file);
 				if (first == null)
-					first = file;
+					first = tab;
 			}
 			vm.SelectedTab = first;
 		}
