@@ -10,6 +10,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="8" />
             <RowDefinition />
         </Grid.RowDefinitions>
         <ItemsControl ItemsSource="{Binding ToolbarItems}" >
@@ -20,24 +21,37 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Command="{Binding Command}" CommandParameter="{Binding CommandParameter}" Margin="4,2" Padding="4">
+                    <Button Command="{Binding Command}" CommandParameter="{Binding CommandParameter}" Margin="4,2" Padding="4" Width="120">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="{Binding Icon}" Width="24" Height="24" />
-                            <TextBlock Text="{Binding Text}" Margin="4,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="{Binding Text}" Margin="4,0,0,0" VerticalAlignment="Center" FontSize="12"/>
                         </StackPanel>
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TabControl Grid.Row="1" ItemsSource="{Binding Tabs}">
-            <TabControl.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <Image Source="{Binding Icon}" />
-                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Margin="4,0,0,0" />
-                    </StackPanel>
-                </DataTemplate>
-            </TabControl.ItemTemplate>
+        <TabControl Grid.Row="2" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="TabItem">
+                    <Setter Property="MinWidth" Value="60" />
+                    <Setter Property="MaxWidth" Value="200" />
+                    <Setter Property="HeaderTemplate">
+                        <Setter.Value>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Source="{Binding Icon}" Width="20" Height="20"/>
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="FontWeight" Value="Bold" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.ItemContainerStyle>
         </TabControl>
     </Grid>
 </UserControl>

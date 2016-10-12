@@ -7,6 +7,35 @@
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     <Grid>
-            
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="8"/>
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.ColumnSpan="3" FontSize="14">
+            <Span>File: </Span>
+            <Run Text="{Binding Path, Mode=OneTime}" FontWeight="Bold" />
+        </TextBlock>
+        <ListView Grid.Row="2" ItemsSource="{Binding Streams}" SelectedItem="{Binding SelectedStream, Mode=TwoWay, Delay=500}" SelectionMode="Single">
+            <ListView.View>
+                <GridView>
+                    <GridView.Columns>
+                        <GridViewColumn Header="Stream Name" DisplayMemberBinding="{Binding StreamName}" />
+                        <GridViewColumn Header="Stream Size">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding StreamSize, StringFormat=\{0\} Bytes}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView.Columns>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <local:BinaryView Grid.Column="1" Margin="4" Grid.Row="2" DataContext="{Binding DataViewModel}" />
     </Grid>
 </UserControl>

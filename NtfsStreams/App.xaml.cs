@@ -15,6 +15,7 @@ namespace NtfsStreams {
 		protected override void OnStartup(StartupEventArgs e) {
 			var vm = new MainViewModel();
 			var win = new MainWindow { DataContext = vm };
+			vm.MessageBoxService.SetOwner(win);
 			win.Show();
 		}
 	}

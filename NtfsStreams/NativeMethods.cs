@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 namespace NtfsStreams {
 	[SuppressUnmanagedCodeSecurity]
 	static class NativeMethods {
-		[StructLayout(LayoutKind.Sequential, Pack = 1)]
+		[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
 		public struct StreamFindData {
 			public long StreamSize;
 
@@ -25,5 +26,12 @@ namespace NtfsStreams {
 
 		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
 		public static extern bool FindClose(IntPtr hFind);
+
+		[DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
+		public static extern SafeFileHandle CreateFile(string filename, uint access, int share, IntPtr secAttributes, int creation, int flags, IntPtr hTemplateFile);
+
+		[DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+		public static extern bool CloseHandle(IntPtr handle);
+
 	}
 }
