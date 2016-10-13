@@ -65,6 +65,7 @@ namespace NtfsStreams.ViewModels {
 						continue;
 					sb.Append(_converters[Chunk](bytes, i)).Append(" ");
 					var lastLine = i == count - Chunk;
+
 					if (i % LineWidth == LineWidth - Chunk || lastLine) {
 						// add ASCII/Unicode characters
 						var str = new string(encoding.GetString(Data, lastLine ? i - (count % LineWidth) + 1 : i - LineWidth + Chunk, lastLine ? count % LineWidth : LineWidth).

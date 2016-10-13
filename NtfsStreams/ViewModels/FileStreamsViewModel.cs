@@ -47,7 +47,8 @@ namespace NtfsStreams.ViewModels {
 				return null;
 			}
 			else {
-				byte[] bytes = new byte[stream.StreamSize];
+				var size = Math.Min(1 << 16, stream.StreamSize);	// read 64KB at most
+				byte[] bytes = new byte[size];
 				using (var fs = new FileStream(hFile, FileAccess.Read)) {
 					fs.Read(bytes, 0, bytes.Length);
 				}
