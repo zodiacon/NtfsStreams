@@ -13,6 +13,11 @@
             <i:Interaction.Behaviors>
                 <b:MultiSelectListBoxBehavior SelectedItems="{Binding SelectedFiles, Mode=TwoWay}" />
             </i:Interaction.Behaviors>
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="MouseDoubleClick">
+                    <i:InvokeCommandAction Command="{Binding ViewFilesCommand}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
             <ListView.View>
                 <GridView AllowsColumnReorder="False">
                     <GridView.Columns>

@@ -5,15 +5,31 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:NtfsStreams.Views"
              xmlns:vm="clr-namespace:NtfsStreams.ViewModels"
+             xmlns:z="http://zodiacon.wpf/2016"
              mc:Ignorable="d" x:Name="This"
              d:DesignHeight="300" d:DesignWidth="300">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="8" />
             <RowDefinition />
         </Grid.RowDefinitions>
-        <ItemsControl ItemsSource="{Binding ToolbarItems}" >
+        <Menu>
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" Icon="{z:Image /icons/file_view.ico, Width=20, Height=20}" />
+                <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" Icon="{z:Image /icons/folder_view.ico, Width=20, Height=20}" />
+                <Separator />
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="View Selected Files..." Command="{Binding ViewFilesCommand}" Icon="{z:Image /icons/view.ico, Width=20, Height=20}" />
+                <Separator />
+                <MenuItem Header="_Close All" Command="{Binding CloseAllCommand}" Icon="{z:Image /icons/close.ico, Width=20, Height=20}" />
+                <MenuItem Header="Close All except Current" Command="{Binding CloseAllButThisCommand}" />
+            </MenuItem>
+        </Menu>
+        <ItemsControl ItemsSource="{Binding ToolbarItems}" Grid.Row="1" Margin="0,2,0,0">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Horizontal" />
@@ -30,7 +46,7 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TabControl Grid.Row="2" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}">
+        <TabControl Grid.Row="3" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}">
             <TabControl.ItemContainerStyle>
                 <Style TargetType="TabItem">
                     <Setter Property="MinWidth" Value="60" />

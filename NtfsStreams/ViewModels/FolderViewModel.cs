@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace NtfsStreams.ViewModels {
 	class FolderViewModel : TabViewModelBase {
@@ -18,7 +19,10 @@ namespace NtfsStreams.ViewModels {
 
 		public IList<FileStreamsViewModel> Files => _files;
 
-		public FolderViewModel(string folder, params FileStreamsViewModel[] files) {
+		MainViewModel _mainViewModel;
+
+		public FolderViewModel(MainViewModel mainVieModel, string folder, params FileStreamsViewModel[] files) {
+			_mainViewModel = mainVieModel;
 			Folder = folder;
 			_files = new ObservableCollection<FileStreamsViewModel>(files.OrderBy(file => Path.GetFileName(file.Path)));
 		}
@@ -39,5 +43,7 @@ namespace NtfsStreams.ViewModels {
 			}
 			vm.SelectedTab = first;
 		}
+
+		public ICommand ViewFilesCommand => _mainViewModel.ViewFilesCommand;
 	}
 }

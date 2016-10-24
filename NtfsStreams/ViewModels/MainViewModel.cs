@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using WPFFolderBrowser;
 using Zodiacon.WPF;
 using static NtfsStreams.NativeMethods;
@@ -59,6 +60,8 @@ namespace NtfsStreams.ViewModels {
 			}
 		}
 
+		public ICommand ExitCommand { get; } = new DelegateCommand(() => Application.Current.Shutdown());
+
 		public MainViewModel() {
 			OpenFolderCommand = new DelegateCommand(() => {
 				var folder = BrowseForFolder();
@@ -82,7 +85,7 @@ namespace NtfsStreams.ViewModels {
 				if (files.Count == 0)
 					MessageBoxService.ShowMessage($"No streams found in any of the {total} files.", Constants.Title, MessageBoxButton.OK, MessageBoxImage.Information);
 				else {
-					var folderViewModel = new FolderViewModel(folder, files.ToArray());
+					var folderViewModel = new FolderViewModel(this, folder, files.ToArray());
 					//Tabs.Add(folderViewModel);
 					var tab = AddTab(folderViewModel);
 					SelectedTab = tab; 
@@ -113,6 +116,16 @@ namespace NtfsStreams.ViewModels {
 
 			CloseTabCommand = new DelegateCommand<TabViewModelBase>(tab => Tabs.Remove(tab));
 		}
+
+		public ICommand CloseAllCommand => new DelegateCommand(() => Tabs.Clear(), () => Tabs.Count > 0)
+			.ObservesProperty(() => SelectedTab);
+
+		public ICommand CloseAllButThisCommand => new DelegateCommand(() => {
+			var tab = SelectedTab;
+			Tabs.Clear();
+			AddTab(tab);
+			SelectedTab = tab;
+		}, () => SelectedTab != null && Tabs.Count > 1).ObservesProperty(() => SelectedTab);
 
 		public TabViewModelBase AddTab(TabViewModelBase newTab) {
 			var tab = _tabs.FirstOrDefault(t => t.Title == newTab.Title);
