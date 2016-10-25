@@ -18,6 +18,7 @@ using Zodiacon.WPF;
 using static NtfsStreams.NativeMethods;
 
 namespace NtfsStreams.ViewModels {
+	[Export]
 	class MainViewModel : BindableBase {
 		ObservableCollection<TabViewModelBase> _tabs = new ObservableCollection<TabViewModelBase>();
 		ObservableCollection<string> _recentFiles;
@@ -37,8 +38,11 @@ namespace NtfsStreams.ViewModels {
 		public DelegateCommand<string> OpenRecentFileCommand { get; }
 		public DelegateCommand<string> OpenRecentFolderCommand { get; }
 
-		public IFileDialogService FileDialogService = UIServicesDefaults.FileDialogService;
-		public IMessageBoxService MessageBoxService = UIServicesDefaults.MessageBoxService;
+		[Import]
+		public UIServicesDefaults UIServices;
+
+		public IFileDialogService FileDialogService => UIServices.FileDialogService;
+		public IMessageBoxService MessageBoxService => UIServices.MessageBoxService;
 
 		private TabViewModelBase _selectedTab;
 
