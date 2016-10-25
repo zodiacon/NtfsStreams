@@ -51,6 +51,7 @@
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\MahApps.Metro.1.4.0-ALPHA009\lib\net45\System.Windows.Interactivity.dll</HintPath>
       <Private>True</Private>
@@ -83,6 +84,7 @@
     </ApplicationDefinition>
     <Compile Include="Behaviors\MultiSelectListBoxBehavior.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="ViewModels\BinaryViewModel.cs" />
     <Compile Include="Views\BinaryView.xaml.cs">
       <DependentUpon>BinaryView.xaml</DependentUpon>

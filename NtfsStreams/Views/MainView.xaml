@@ -20,6 +20,23 @@
                 <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" Icon="{z:Image /icons/file_view.ico, Width=20, Height=20}" />
                 <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" Icon="{z:Image /icons/folder_view.ico, Width=20, Height=20}" />
                 <Separator />
+                <MenuItem Header="Recent Files" ItemsSource="{Binding RecentFiles}">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource MetroMenuItem}">
+                            <Setter Property="Command" Value="{Binding DataContext.OpenRecentFileCommand, ElementName=This}" />
+                            <Setter Property="CommandParameter" Value="{Binding}" />
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
+                <MenuItem Header="Recent Folders" ItemsSource="{Binding RecentFolders}">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource MetroMenuItem}">
+                            <Setter Property="Command" Value="{Binding DataContext.OpenRecentFolderCommand, ElementName=This}" />
+                            <Setter Property="CommandParameter" Value="{Binding}" />
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
+                <Separator />
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
             </MenuItem>
             <MenuItem Header="_View">
