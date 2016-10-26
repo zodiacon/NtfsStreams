@@ -1,10 +1,13 @@
-﻿using Prism.Mvvm;
+﻿using Prism.Commands;
+using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace NtfsStreams.ViewModels {
 	class BinaryViewModel : BindableBase {
@@ -56,7 +59,8 @@ namespace NtfsStreams.ViewModels {
 				if (bytes == null)
 					return string.Empty;
 				var encoding = IsASCII ? Encoding.ASCII : Encoding.Unicode;
-				var count = Size;
+				var count = Math.Min(Size, 1 << 16);	// limit to 64K for perf reasons
+
 				var sb = new StringBuilder(1024);
 				for (int i = 0; i < count; i += Chunk) {
 					if (i % LineWidth == 0)
@@ -195,6 +199,16 @@ namespace NtfsStreams.ViewModels {
 			}
 		}
 
+		public ICommand ExportCommand => new DelegateCommand(() => {
+			var filename = App.MainViewModel.FileDialogService.GetFileForSave();
+			if (filename == null) return;
 
+			try {
+				File.WriteAllBytes(filename, Data);
+			}
+			catch (Exception ex) {
+				App.MainViewModel.MessageBoxService.ShowMessage(ex.Message, Constants.Title);
+			}
+		});
 	}
 }

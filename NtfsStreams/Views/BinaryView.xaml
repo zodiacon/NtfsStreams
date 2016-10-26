@@ -38,6 +38,8 @@
 
             <ToggleButton Margin="20,0,0,0" Content="ASCII" Width="50" IsChecked="{Binding IsASCII}" />
             <ToggleButton Margin="2,0,0,0" Content="UTF-16" Width="50" IsChecked="{Binding IsUTF16}" />
+
+            <Button Margin="20,0,0,0" Content="Export..." Command="{Binding ExportCommand}" />
         </StackPanel>
         <TextBox Grid.Row="2" AcceptsReturn="True" IsReadOnly="True" Text="{Binding HexText, Mode=OneWay}" FontFamily="Consolas" 
                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" />

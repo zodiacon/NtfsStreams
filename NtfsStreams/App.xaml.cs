@@ -15,7 +15,7 @@ namespace NtfsStreams {
 	/// Interaction logic for App.xaml
 	/// </summary>
 	public partial class App : Application {
-		MainViewModel _mainViewModel;
+		internal static MainViewModel MainViewModel { get; private set; }
 
 		protected override void OnStartup(StartupEventArgs e) {
 			var catalog = new AggregateCatalog(
@@ -24,14 +24,14 @@ namespace NtfsStreams {
 			var container = new CompositionContainer(catalog);
 
 			var vm = container.GetExportedValue<MainViewModel>();
-			_mainViewModel = vm;
+			MainViewModel = vm;
 			var win = new MainWindow { DataContext = vm };
 			vm.MessageBoxService.SetOwner(win);
 			win.Show();
 		}
 
 		protected override void OnExit(ExitEventArgs e) {
-			_mainViewModel.Close();
+			MainViewModel.Close();
 			base.OnExit(e);
 		}
 	}
