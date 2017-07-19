@@ -17,7 +17,7 @@ namespace NtfsStreams.ViewModels {
 			get { return _chunk; }
 			set {
 				if (SetProperty(ref _chunk, value)) {
-					OnPropertyChanged(nameof(HexText));
+					RaisePropertyChanged(nameof(HexText));
 				}
 			}
 		}
@@ -28,7 +28,7 @@ namespace NtfsStreams.ViewModels {
 			get { return _lineWidth; }
 			set {
 				if (SetProperty(ref _lineWidth, value)) {
-					OnPropertyChanged(nameof(HexText));
+					RaisePropertyChanged(nameof(HexText));
 				}
 			}
 		}
@@ -39,7 +39,7 @@ namespace NtfsStreams.ViewModels {
 			get { return _data; }
 			set {
 				if (SetProperty(ref _data, value)) {
-					OnPropertyChanged(nameof(HexText));
+					RaisePropertyChanged(nameof(HexText));
 				}
 			}
 		}
@@ -134,7 +134,7 @@ namespace NtfsStreams.ViewModels {
 			set {
 				if (SetProperty(ref _isASCII, value) && value) {
 					IsUTF16 = false;
-					OnPropertyChanged(nameof(HexText));
+					RaisePropertyChanged(nameof(HexText));
 				}
 			}
 		}
@@ -146,7 +146,7 @@ namespace NtfsStreams.ViewModels {
 			set {
 				if (SetProperty(ref _isUTF16, value) && value) {
 					IsASCII = false;
-					OnPropertyChanged(nameof(HexText));
+					RaisePropertyChanged(nameof(HexText));
 				};
 			}
 		}
