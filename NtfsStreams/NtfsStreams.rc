@@ -86,6 +86,8 @@ BEGIN
             MENUITEM "(None)",                  ID_FILE_RECENTFOLDERS, GRAYED
         END
         MENUITEM SEPARATOR
+        MENUITEM "&Export Stream...\tCtrl+E",   ID_STREAM_EXPORT
+        MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
     POPUP "&Edit"
@@ -123,6 +125,31 @@ BEGIN
         MENUITEM "Open in &Explorer",           ID_FOLDER_OPENINEXPLORER
         MENUITEM "&Copy Path\tCtrl+C",          ID_EDIT_COPY
     END
+    POPUP "Stream"
+    BEGIN
+        MENUITEM "&Export...\tCtrl+E",          ID_STREAM_EXPORT
+        MENUITEM "&Copy Name\tCtrl+C",          ID_EDIT_COPY
+    END
+    POPUP "Bytes per Line"
+    BEGIN
+        MENUITEM "&8 Bytes per Line",           ID_HEX_LINE8
+        MENUITEM "&16 Bytes per Line",          ID_HEX_LINE16
+        MENUITEM "&32 Bytes per Line",          ID_HEX_LINE32
+    END
+    POPUP "Item Size"
+    BEGIN
+        MENUITEM "&Byte",                       ID_HEX_SIZE1
+        MENUITEM "&Word (2 Bytes)",             ID_HEX_SIZE2
+        MENUITEM "&DWord (4 Bytes)",            ID_HEX_SIZE4
+        MENUITEM "&QWord (8 Bytes)",            ID_HEX_SIZE8
+    END
+    POPUP "Encoding"
+    BEGIN
+        MENUITEM "&Auto",                       ID_TEXT_AUTO
+        MENUITEM "A&SCII",                      ID_TEXT_ASCII
+        MENUITEM "UTF-&8",                      ID_TEXT_UTF8
+        MENUITEM "UTF-1&6",                     ID_TEXT_UTF16
+    END
 END
 
 
@@ -137,6 +164,7 @@ BEGIN
     "O",            ID_FILE_OPENFOLDER,     VIRTKEY, SHIFT, CONTROL, NOINVERT
     "W",            ID_FILE_CLOSE,          VIRTKEY, CONTROL, NOINVERT
     "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
+    "E",            ID_STREAM_EXPORT,       VIRTKEY, CONTROL, NOINVERT
     VK_F5,          ID_VIEW_REFRESH,        VIRTKEY, NOINVERT
 END
 
@@ -223,6 +251,10 @@ BEGIN
     ID_FOLDER_STOP          "Stop the scan\nStop"
     ID_FOLDER_OPENINEXPLORER "Show the file in Explorer\nOpen in Explorer"
     ID_EDIT_COPY            "Copy the selection\nCopy"
+    ID_STREAM_EXPORT        "Save the selected stream's contents to a file\nExport Stream"
+    ID_HEX_BYTESPERLINE     "How many bytes each line of the hex view shows\nBytes per Line"
+    ID_HEX_DATASIZE         "The size of the hex view's items\nItem Size"
+    ID_TEXT_ENCODING        "How the text pane decodes the stream\nText Encoding"
 END
 
 STRINGTABLE

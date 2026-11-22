@@ -41,6 +41,10 @@ namespace Streams {
 	// creates the stream, or replaces its contents
 	DWORD WriteStream(std::wstring const& path, std::wstring_view name, std::span<const uint8_t> data);
 	DWORD DeleteStream(std::wstring const& path, std::wstring_view name);
+	// the stream's contents into a new file (replacing one there), copied in chunks
+	DWORD ExportStream(std::wstring const& path, std::wstring_view name, std::wstring const& target);
+	// a name for the exported file: "file.txt_Zone.Identifier", with characters a file name can't have as '_'
+	std::wstring ExportFileName(std::wstring const& path, std::wstring_view name);
 	// fails with ERROR_ALREADY_EXISTS if a stream has the new name, unless replace
 	DWORD RenameStream(std::wstring const& path, std::wstring_view name, std::wstring_view newName, bool replace = false);
 

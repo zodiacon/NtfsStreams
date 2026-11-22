@@ -30,6 +30,23 @@
 #define ID_FOLDER_SUBFOLDERS            32780
 #define ID_FOLDER_STOP                  32781
 #define ID_FOLDER_OPENINEXPLORER        32782
+#define ID_STREAM_EXPORT                32783
+// a file tab's tool bar drop-downs, and their menus' items
+#define ID_HEX_BYTESPERLINE             32784
+#define ID_HEX_DATASIZE                 32785
+#define ID_TEXT_ENCODING                32786
+#define ID_HEX_LINE8                    32790
+#define ID_HEX_LINE16                   32791
+#define ID_HEX_LINE32                   32792
+#define ID_HEX_SIZE1                    32793
+#define ID_HEX_SIZE2                    32794
+#define ID_HEX_SIZE4                    32795
+#define ID_HEX_SIZE8                    32796
+// in TextDecode::Encoding order
+#define ID_TEXT_AUTO                    32797
+#define ID_TEXT_ASCII                   32798
+#define ID_TEXT_UTF8                    32799
+#define ID_TEXT_UTF16                   32800
 // the status bar pane with the active view's summary
 #define ID_PANE_VIEW                    33000
 // File > Recent Files and Recent Folders: up to MaxRecent each
@@ -43,7 +60,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        212
-#define _APS_NEXT_COMMAND_VALUE         32783
+#define _APS_NEXT_COMMAND_VALUE         32801
 #define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

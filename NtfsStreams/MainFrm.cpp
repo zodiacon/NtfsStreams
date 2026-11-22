@@ -51,7 +51,7 @@ BOOL CMainFrame::OnIdle() {
 	UIEnable(ID_VIEW_CLOSEALL, count > 0);
 	UIEnable(ID_VIEW_CLOSEALLBUTTHIS, count > 1);
 	// the active view enables its own
-	for (auto id : { ID_VIEW_VIEWFILES, ID_VIEW_REFRESH, ID_EDIT_COPY })
+	for (auto id : { ID_VIEW_VIEWFILES, ID_VIEW_REFRESH, ID_EDIT_COPY, ID_STREAM_EXPORT })
 		UIEnable(id, false);
 	if (m_ActiveView)
 		m_ActiveView->UpdateUI(*this);

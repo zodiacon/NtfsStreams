@@ -165,6 +165,37 @@ DWORD Streams::DeleteStream(std::wstring const& path, std::wstring_view name) {
 	return ::DeleteFile(StreamPath(path, name).c_str()) ? ERROR_SUCCESS : ::GetLastError();
 }
 
+DWORD Streams::ExportStream(std::wstring const& path, std::wstring_view name, std::wstring const& target) {
+	wil::unique_hfile source(::CreateFile(StreamPath(path, name).c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
+	if (!source)
+		return ::GetLastError();
+	wil::unique_hfile dest(::CreateFile(target.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
+	if (!dest)
+		return ::GetLastError();
+
+	std::vector<uint8_t> buffer(1 << 20);
+	for (;;) {
+		DWORD read, written;
+		if (!::ReadFile(source.get(), buffer.data(), (DWORD)buffer.size(), &read, nullptr))
+			return ::GetLastError();
+		if (read == 0)
+			return ERROR_SUCCESS;
+		if (!::WriteFile(dest.get(), buffer.data(), read, &written, nullptr))
+			return ::GetLastError();
+	}
+}
+
+std::wstring Streams::ExportFileName(std::wstring const& path, std::wstring_view name) {
+	auto slash = path.find_last_of(L"\\/");
+	auto file = slash == std::wstring::npos ? path : path.substr(slash + 1);
+	auto result = file + L"_" + std::wstring(name);
+	for (auto& c : result)
+		if (c < 32 || wcschr(L"<>:\"/\\|?*", c))
+			c = L'_';
+	return result;
+}
+
 namespace {
 	// a stream is renamed to ":newname:$DATA", within the same file. NTFS refuses to replace a stream that isn't empty
 	// (ERROR_INVALID_PARAMETER, even with ReplaceIfExists), so this never replaces: an existing target is ERROR_ALREADY_EXISTS
