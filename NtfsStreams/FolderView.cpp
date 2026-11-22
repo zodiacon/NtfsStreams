@@ -58,6 +58,74 @@ void CFolderView::UpdateUI(CUpdateUIBase& ui) {
 	ui.UIEnable(ID_VIEW_VIEWFILES, selected);
 	ui.UIEnable(ID_EDIT_COPY, selected);
 	ui.UIEnable(ID_VIEW_REFRESH, true);
+	ui.UIEnable(ID_FOLDER_UNBLOCK, selected);
+	ui.UIEnable(ID_FOLDER_DELETESTREAMS, selected);
+}
+
+LRESULT CFolderView::OnDeleteStreams(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	constexpr std::wstring_view ZoneIdentifier = L"Zone.Identifier";
+	bool all = wID == ID_FOLDER_DELETESTREAMS;
+	auto paths = GetSelectedPaths();
+
+	// the streams to go, by file (as the rows say)
+	std::vector<std::pair<std::wstring, std::vector<std::wstring>>> targets;
+	size_t count = 0;
+	for (auto& path : paths) {
+		auto it = std::ranges::find(m_Files, path, &Streams::FileStreams::Path);
+		if (it == m_Files.end())
+			continue;
+		std::vector<std::wstring> names;
+		for (auto& s : it->Streams)
+			if (all || _wcsicmp(s.Name.c_str(), ZoneIdentifier.data()) == 0)
+				names.push_back(s.Name);
+		count += names.size();
+		if (!names.empty())
+			targets.emplace_back(path, std::move(names));
+	}
+	auto hWnd = Frame()->GetHwnd();
+	if (targets.empty()) {
+		AtlMessageBox(hWnd, L"None of the selected files has a Zone.Identifier stream.", IDR_MAINFRAME, MB_ICONINFORMATION);
+		return 0;
+	}
+	auto question = all ?
+		std::format(L"Delete all {} streams of {} file{}?", count, targets.size(), targets.size() == 1 ? L"" : L"s") :
+		std::format(L"Remove the Zone.Identifier stream (where the file came from) from {} file{}?", targets.size(), targets.size() == 1 ? L"" : L"s");
+	if (AtlMessageBox(hWnd, question.c_str(), IDR_MAINFRAME, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2) != IDOK)
+		return 0;
+
+	CWaitCursor wait;
+	bool keepTimes = AppSettings::Get().KeepFileTimes() != 0;
+	size_t failed = 0;
+	std::wstring firstError;
+	for (auto& [path, names] : targets) {
+		Streams::FileTimesKeeper keep(path, keepTimes);
+		for (auto& name : names) {
+			auto error = Streams::DeleteStream(path, name);
+			if (error != ERROR_SUCCESS && error != ERROR_FILE_NOT_FOUND) {
+				if (failed++ == 0)
+					firstError = std::format(L"{}:{}\n{}", path, name, Helpers::ErrorText(error));
+			}
+		}
+	}
+
+	// the rows of those files as they are now: gone if no streams are left
+	for (auto& [path, names] : targets) {
+		auto it = std::ranges::find(m_Files, path, &Streams::FileStreams::Path);
+		auto streams = Streams::GetStreams(path);
+		if (streams && !streams->empty())
+			it->Streams = std::move(*streams);
+		else
+			m_Files.erase(it);
+	}
+	m_List.SetItemState(-1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	m_List.SetItemCountEx((int)m_Files.size(), LVSICF_NOSCROLL);
+	m_List.Invalidate();
+	UpdateStatus();
+
+	if (failed)
+		AtlMessageBox(hWnd, std::format(L"{} stream{} couldn't be deleted. The first:\n\n{}", failed, failed == 1 ? L"" : L"s", firstError).c_str(),
+			IDR_MAINFRAME, MB_ICONERROR);
+	return 0;
 }
 
 void CFolderView::OnDpiChanged(UINT /*dpi*/) {

@@ -12,17 +12,18 @@ namespace {
 		return data.size() >= 2 && data[0] == 0xFF && data[1] == 0xFE;
 	}
 
+	// what can't be decoded (an ASCII byte above 0x7E, invalid UTF-8) is first this, then '.'
+	constexpr wchar_t Undecodable = 0xFFFD;
+
 	// shown as is: printable, tab and line breaks
-	wchar_t Shown(wchar_t c) {
+	bool IsShown(wchar_t c) {
 		if (c == L'\t' || c == L'\r' || c == L'\n')
-			return c;
-		if (c < 0x20 || c == 0x7F || (c >= 0x80 && c < 0xA0))
-			return L'.';
-		return c;
+			return true;
+		return !(c < 0x20 || c == 0x7F || (c >= 0x80 && c < 0xA0) || c == Undecodable);
 	}
 
-	// CR, LF and CR LF all as CR LF; the rest through Shown
-	std::wstring Finish(std::wstring_view text) {
+	// CR, LF and CR LF all as CR LF; what isn't shown as '.', counted
+	std::wstring Finish(std::wstring_view text, size_t& replaced) {
 		std::wstring result;
 		result.reserve(text.size() + text.size() / 16);
 		for (size_t i = 0; i < text.size(); i++) {
@@ -35,8 +36,12 @@ namespace {
 			else if (c == L'\n') {
 				result += L"\r\n";
 			}
+			else if (IsShown(c)) {
+				result += c;
+			}
 			else {
-				result += Shown(c);
+				result += L'.';
+				replaced++;
 			}
 		}
 		return result;
@@ -87,31 +92,75 @@ Encoding TextDecode::Detect(std::span<const uint8_t> data) {
 	return Encoding::Ascii;
 }
 
-std::wstring TextDecode::Decode(std::span<const uint8_t> data, Encoding encoding) {
+std::wstring TextDecode::Decode(std::span<const uint8_t> data, Encoding encoding, size_t* replaced) {
 	if (encoding == Encoding::Auto)
 		encoding = Detect(data);
 
+	size_t count = 0;
+	std::wstring result;
 	switch (encoding) {
 		case Encoding::Utf16:
 		{
 			if (HasUtf16Bom(data))
 				data = data.subspan(2);
 			std::wstring_view text((const wchar_t*)data.data(), data.size() / 2);
-			return Finish(text);
+			result = Finish(text, count);
+			// an odd last byte isn't shown
+			count += data.size() % 2;
+			break;
 		}
 		case Encoding::Utf8:
 			if (HasUtf8Bom(data))
 				data = data.subspan(3);
-			return Finish(FromUtf8(data));
+			result = Finish(FromUtf8(data), count);
+			break;
 		default:
 		{
 			std::wstring text;
 			text.reserve(data.size());
 			for (auto b : data)
-				text += b < 0x80 ? (wchar_t)b : L'.';
-			return Finish(text);
+				text += b < 0x80 ? (wchar_t)b : Undecodable;
+			result = Finish(text, count);
+			break;
 		}
 	}
+	if (replaced)
+		*replaced = count;
+	return result;
+}
+
+std::vector<uint8_t> TextDecode::Encode(std::wstring_view text, Encoding encoding, bool bom) {
+	std::vector<uint8_t> data;
+	switch (encoding) {
+		case Encoding::Utf16:
+		{
+			if (bom)
+				data = { 0xFF, 0xFE };
+			auto p = reinterpret_cast<const uint8_t*>(text.data());
+			data.insert(data.end(), p, p + text.size() * sizeof(wchar_t));
+			break;
+		}
+		case Encoding::Ascii:
+			data.reserve(text.size());
+			for (auto c : text)
+				data.push_back(c < 0x80 ? (uint8_t)c : (uint8_t)'?');
+			break;
+		default:
+			if (bom)
+				data = { 0xEF, 0xBB, 0xBF };
+			if (!text.empty()) {
+				auto len = ::WideCharToMultiByte(CP_UTF8, 0, text.data(), (int)text.size(), nullptr, 0, nullptr, nullptr);
+				auto start = data.size();
+				data.resize(start + len);
+				::WideCharToMultiByte(CP_UTF8, 0, text.data(), (int)text.size(), (PSTR)data.data() + start, len, nullptr, nullptr);
+			}
+			break;
+	}
+	return data;
+}
+
+bool TextDecode::HasBom(std::span<const uint8_t> data) {
+	return HasUtf8Bom(data) || HasUtf16Bom(data);
 }
 
 PCWSTR TextDecode::Name(Encoding encoding) {

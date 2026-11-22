@@ -165,25 +165,56 @@ DWORD Streams::DeleteStream(std::wstring const& path, std::wstring_view name) {
 	return ::DeleteFile(StreamPath(path, name).c_str()) ? ERROR_SUCCESS : ::GetLastError();
 }
 
-DWORD Streams::ExportStream(std::wstring const& path, std::wstring_view name, std::wstring const& target) {
-	wil::unique_hfile source(::CreateFile(StreamPath(path, name).c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-		nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
-	if (!source)
-		return ::GetLastError();
-	wil::unique_hfile dest(::CreateFile(target.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
-	if (!dest)
-		return ::GetLastError();
+namespace {
+	DWORD CopyContents(std::wstring const& sourcePath, std::wstring const& targetPath) {
+		wil::unique_hfile source(::CreateFile(sourcePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+			nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
+		if (!source)
+			return ::GetLastError();
+		wil::unique_hfile dest(::CreateFile(targetPath.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_SEQUENTIAL_SCAN, nullptr));
+		if (!dest)
+			return ::GetLastError();
 
-	std::vector<uint8_t> buffer(1 << 20);
-	for (;;) {
-		DWORD read, written;
-		if (!::ReadFile(source.get(), buffer.data(), (DWORD)buffer.size(), &read, nullptr))
-			return ::GetLastError();
-		if (read == 0)
-			return ERROR_SUCCESS;
-		if (!::WriteFile(dest.get(), buffer.data(), read, &written, nullptr))
-			return ::GetLastError();
+		std::vector<uint8_t> buffer(1 << 20);
+		for (;;) {
+			DWORD read, written;
+			if (!::ReadFile(source.get(), buffer.data(), (DWORD)buffer.size(), &read, nullptr))
+				return ::GetLastError();
+			if (read == 0)
+				return ERROR_SUCCESS;
+			if (!::WriteFile(dest.get(), buffer.data(), read, &written, nullptr))
+				return ::GetLastError();
+		}
 	}
+}
+
+DWORD Streams::ExportStream(std::wstring const& path, std::wstring_view name, std::wstring const& target) {
+	return CopyContents(StreamPath(path, name), target);
+}
+
+DWORD Streams::ImportFile(std::wstring const& path, std::wstring_view name, std::wstring const& source) {
+	if (!IsValidStreamName(name))
+		return ERROR_INVALID_NAME;
+	return CopyContents(source, StreamPath(path, name));
+}
+
+Streams::FileTimesKeeper::FileTimesKeeper(std::wstring const& path, bool enabled) {
+	if (!enabled)
+		return;
+	// backup semantics: a directory too
+	m_File.reset(::CreateFile(path.c_str(), FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr));
+	if (m_File && !::GetFileInformationByHandleEx(m_File.get(), FileBasicInfo, &m_Info, sizeof(m_Info)))
+		m_File.reset();
+}
+
+Streams::FileTimesKeeper::~FileTimesKeeper() {
+	if (!m_File)
+		return;
+	auto info = m_Info;
+	info.ChangeTime.QuadPart = 0;	// 0: left as it is
+	info.FileAttributes = 0;
+	::SetFileInformationByHandle(m_File.get(), FileBasicInfo, &info, sizeof(info));
 }
 
 std::wstring Streams::ExportFileName(std::wstring const& path, std::wstring_view name) {

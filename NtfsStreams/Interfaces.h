@@ -31,6 +31,10 @@ struct IView abstract {
 	// the status bar text while the view is active
 	virtual std::wstring GetStatusText() const = 0;
 
+	// before the view's tab closes (or the app exits): false keeps it open (unsaved changes the user wants to keep)
+	virtual bool CanClose() {
+		return true;
+	}
 	virtual void OnActivate(bool /*active*/) {}
 	// on idle while active: the frame's commands that depend on the view (View Files...)
 	virtual void UpdateUI(CUpdateUIBase& /*ui*/) {}

@@ -2,20 +2,36 @@
 #include "FileStreamsView.h"
 #include "Helpers.h"
 #include "AppSettings.h"
+#include "StreamDialogs.h"
 #include <SortHelper.h>
 #include <DpiHelper.h>
 #include <ClipboardHelper.h>
 #include <ToolbarHelper.h>
 
 namespace {
-	// no images: text only, each a drop-down but Export
+	// no images: text only; the first three drop down
 	const ToolBarButtonInfo s_BarButtons[] = {
 		{ ID_HEX_BYTESPERLINE, 0, BTNS_WHOLEDROPDOWN | BTNS_AUTOSIZE, L"16 Bytes per Line" },
 		{ ID_HEX_DATASIZE, 0, BTNS_WHOLEDROPDOWN | BTNS_AUTOSIZE, L"Byte" },
 		{ ID_TEXT_ENCODING, 0, BTNS_WHOLEDROPDOWN | BTNS_AUTOSIZE, L"Text: Auto" },
 		{ 0 },
+		{ ID_STREAM_NEW, 0, BTNS_BUTTON | BTNS_AUTOSIZE, L"New..." },
+		{ ID_STREAM_EDITTEXT, 0, BTNS_BUTTON | BTNS_AUTOSIZE, L"Edit Text..." },
+		{ ID_STREAM_EDITBYTES, 0, BTNS_CHECK | BTNS_AUTOSIZE, L"Edit Bytes" },
+		{ ID_STREAM_SAVE, 0, BTNS_BUTTON | BTNS_AUTOSIZE, L"Save" },
+		{ ID_STREAM_DISCARD, 0, BTNS_BUTTON | BTNS_AUTOSIZE, L"Discard" },
+		{ 0 },
 		{ ID_STREAM_EXPORT, 0, BTNS_BUTTON | BTNS_AUTOSIZE, L"Export..." },
 	};
+
+	int Ask(HWND hWnd, std::wstring const& text, UINT type) {
+		return AtlMessageBox(hWnd, text.c_str(), IDR_MAINFRAME, type);
+	}
+
+	// stream names compare without case, as NTFS does
+	bool SameName(std::wstring const& a, std::wstring const& b) {
+		return _wcsicmp(a.c_str(), b.c_str()) == 0;
+	}
 
 	// the context menu's submenus (IDR_CONTEXT)
 	enum ContextMenu { FolderMenu, StreamMenu, BytesPerLineMenu, DataSizeMenu, EncodingMenu };
@@ -41,6 +57,9 @@ CString CFileStreamsView::GetTitle() const {
 std::wstring CFileStreamsView::GetStatusText() const {
 	if (!m_Error.empty())
 		return m_Error;
+	if (m_Editing)
+		return std::format(L"Editing {}{} ({}) - Insert switches between inserting and overwriting; Save Changes (Ctrl+S) writes them",
+			m_File.Streams[m_Shown].Name, m_Changed ? L" (changed)" : L"", Helpers::FormatSize(m_Buffer->GetSize()));
 	auto count = m_File.Streams.size();
 	auto text = std::format(L"{} stream{}, {} in all", count, count == 1 ? L"" : L"s", Helpers::FormatSize(m_File.TotalSize()));
 	if (m_Shown >= 0 && m_StreamError.empty() && m_Encoding == TextDecode::Encoding::Auto && !m_TextData.empty())
@@ -49,10 +68,24 @@ std::wstring CFileStreamsView::GetStatusText() const {
 }
 
 void CFileStreamsView::UpdateUI(CUpdateUIBase& ui) {
-	ui.UIEnable(ID_VIEW_REFRESH, true);
 	bool stream = GetSelectedRow() >= 0;
-	ui.UIEnable(ID_STREAM_EXPORT, stream);
-	UIEnable(ID_STREAM_EXPORT, stream);
+	// the frame's menus and this view's tool bar alike
+	auto enable = [&](UINT id, bool enabled) {
+		ui.UIEnable(id, enabled);
+		UIEnable(id, enabled);
+	};
+	enable(ID_VIEW_REFRESH, true);
+	enable(ID_STREAM_EXPORT, stream && !m_Editing);
+	enable(ID_STREAM_NEW, !m_Editing);
+	enable(ID_STREAM_IMPORT, !m_Editing);
+	enable(ID_STREAM_EDITTEXT, stream && !m_Editing);
+	enable(ID_STREAM_EDITBYTES, stream);
+	enable(ID_STREAM_SAVE, m_Editing && IsDirty());
+	enable(ID_STREAM_DISCARD, m_Editing);
+	enable(ID_STREAM_RENAME, stream && !m_Editing);
+	enable(ID_STREAM_DELETE, stream && !m_Editing);
+	ui.UISetCheck(ID_STREAM_EDITBYTES, m_Editing);
+	UISetCheck(ID_STREAM_EDITBYTES, m_Editing);
 	auto focus = ::GetFocus();
 	if (focus == m_Hex)
 		ui.UIEnable(ID_EDIT_COPY, m_Hex.CanCopy());
@@ -106,13 +139,27 @@ void CFileStreamsView::DoSort(SortInfo const* si) {
 }
 
 void CFileStreamsView::OnStateChanged(HWND hList, int from, int to, UINT oldState, UINT newState) {
-	if (hList != m_List || IsSorting())
+	if (hList != m_List || IsSorting() || m_Restoring)
 		return;
 	if ((oldState ^ newState) & LVIS_SELECTED) {
 		int row = GetSelectedRow();
-		if (row != m_Shown)
-			ShowStream(row);
+		if (row == m_Shown)
+			return;
+		// edits to the shown stream: saved, discarded, or the selection goes back to it
+		if (m_Editing && !ConfirmStopEditing()) {
+			m_Restoring = true;
+			m_List.SetItemState(-1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+			m_List.SetItemState(m_Shown, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+			m_Restoring = false;
+			return;
+		}
+		// saving refreshed the list: the row may be another now
+		ShowStream(GetSelectedRow());
 	}
+}
+
+bool CFileStreamsView::CanClose() {
+	return ConfirmStopEditing();
 }
 
 LRESULT CFileStreamsView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
@@ -253,9 +300,11 @@ LRESULT CFileStreamsView::OnExport(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hW
 	return 0;
 }
 
-void CFileStreamsView::Refresh() {
+void CFileStreamsView::Refresh(std::wstring const& select) {
+	if (!ConfirmStopEditing())
+		return;
 	int selected = GetSelectedRow();
-	auto name = selected >= 0 ? m_File.Streams[selected].Name : std::wstring();
+	auto name = !select.empty() ? select : selected >= 0 ? m_File.Streams[selected].Name : std::wstring();
 
 	auto streams = Streams::GetStreams(m_File.Path);
 	if (streams) {
@@ -274,7 +323,7 @@ void CFileStreamsView::Refresh() {
 	Sort(m_List);
 	SetIsSorting(false);
 
-	auto it = std::ranges::find(m_File.Streams, name, &Streams::StreamInfo::Name);
+	auto it = std::ranges::find_if(m_File.Streams, [&](auto& s) { return SameName(s.Name, name); });
 	int index = it == m_File.Streams.end() ? (m_File.Streams.empty() ? -1 : 0) : int(it - m_File.Streams.begin());
 	if (index >= 0) {
 		m_List.SetItemState(index, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -451,4 +500,272 @@ void CFileStreamsView::SetTextFont() {
 void CFileStreamsView::UpdateStatus() const {
 	if (m_Active)
 		Frame()->SetStatusText(GetStatusText().c_str());
+}
+
+LRESULT CFileStreamsView::OnListKeyDown(int /*idCtrl*/, LPNMHDR hdr, BOOL& bHandled) {
+	if (hdr->hwndFrom != m_List) {
+		bHandled = FALSE;
+		return 0;
+	}
+	// in the list only: the keys mean other things in the hex view and the text pane
+	BOOL handled;
+	switch (reinterpret_cast<NMLVKEYDOWN*>(hdr)->wVKey) {
+		case VK_DELETE:
+			if (!m_Editing)
+				OnDelete(0, ID_STREAM_DELETE, nullptr, handled);
+			break;
+		case VK_F2:
+			if (!m_Editing)
+				OnRename(0, ID_STREAM_RENAME, nullptr, handled);
+			break;
+	}
+	return 0;
+}
+
+bool CFileStreamsView::StreamExists(std::wstring const& name) const {
+	return std::ranges::any_of(m_File.Streams, [&](auto& s) { return SameName(s.Name, name); });
+}
+
+bool CFileStreamsView::Change(std::function<DWORD()> const& change, PCWSTR what) {
+	DWORD error;
+	{
+		Streams::FileTimesKeeper keep(m_File.Path, AppSettings::Get().KeepFileTimes() != 0);
+		error = change();
+	}
+	if (error == ERROR_SUCCESS)
+		return true;
+	Ask(Frame()->GetHwnd(), std::format(L"{} failed.\n\n{}", what, Helpers::ErrorText(error)), MB_ICONERROR);
+	return false;
+}
+
+LRESULT CFileStreamsView::OnNewStream(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	CTextStreamDlg dlg(L"New Stream", L"", false, L"", TextDecode::Encoding::Utf8, false, [this](auto& name) {
+		return StreamExists(name) ? std::wstring(L"The file has a stream with this name (Edit Text changes it).") : std::wstring();
+		});
+	if (dlg.DoModal(Frame()->GetHwnd()) != IDOK)
+		return 0;
+	auto data = TextDecode::Encode(dlg.GetText(), dlg.GetEncoding(), dlg.GetBom());
+	if (Change([&] { return Streams::WriteStream(m_File.Path, dlg.GetName(), data); }, L"Adding the stream"))
+		Refresh(dlg.GetName());
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnImport(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	CShellFileOpenDialog open(nullptr, FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST);
+	open.GetPtr()->SetTitle(L"Import File as Stream");
+	if (open.DoModal(Frame()->GetHwnd()) != IDOK)
+		return 0;
+	CString source;
+	if (FAILED(open.GetFilePath(source)))
+		return 0;
+
+	// the file's name, as a stream may have it
+	auto name = Helpers::FileName((PCWSTR)source);
+	std::ranges::replace(name, L':', L'_');
+	CNameDlg dlg(L"Import File as Stream", std::format(L"The stream for {}:", (PCWSTR)source), name);
+	if (dlg.DoModal(Frame()->GetHwnd()) != IDOK)
+		return 0;
+	if (StreamExists(dlg.GetName()) &&
+		Ask(Frame()->GetHwnd(), std::format(L"Replace the stream {} with the file's contents?", dlg.GetName()), MB_ICONQUESTION | MB_OKCANCEL) != IDOK)
+		return 0;
+
+	CWaitCursor wait;
+	if (Change([&] { return Streams::ImportFile(m_File.Path, dlg.GetName(), (PCWSTR)source); }, L"Importing the file"))
+		Refresh(dlg.GetName());
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnEditText(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	int row = GetSelectedRow();
+	if (row < 0 || m_Editing)
+		return 0;
+	auto name = m_File.Streams[row].Name;
+	auto hWnd = Frame()->GetHwnd();
+	if (m_File.Streams[row].Size > TextEditLimit) {
+		Ask(hWnd, std::format(L"The stream is too large to edit as text (more than {}).", Helpers::FormatSize(TextEditLimit)), MB_ICONINFORMATION);
+		return 0;
+	}
+	auto data = Streams::ReadStream(m_File.Path, name);
+	if (!data) {
+		Ask(hWnd, Helpers::ErrorText(data.error()), MB_ICONERROR);
+		return 0;
+	}
+
+	auto encoding = m_Encoding == TextDecode::Encoding::Auto ? TextDecode::Detect(*data) : m_Encoding;
+	size_t replaced = 0;
+	auto text = TextDecode::Decode(*data, encoding, &replaced);
+	if (replaced) {
+		// written back, those characters would be '.'
+		Ask(hWnd, std::format(L"The stream has {} byte{} that aren't text in {}. Editing it as text would change them: use Edit Bytes, "
+			L"or pick another encoding (Text: on the tool bar).", replaced, replaced == 1 ? L"" : L"s", TextDecode::Name(encoding)), MB_ICONINFORMATION);
+		return 0;
+	}
+	// line breaks are CR LF in the editor; a stream that had LF alone keeps it
+	bool lfOnly = std::ranges::find(*data, '\r') == data->end() && std::ranges::find(*data, '\n') != data->end();
+
+	CTextStreamDlg dlg(std::format(L"Edit Text: {}", name), name, true, text, encoding, TextDecode::HasBom(*data));
+	if (dlg.DoModal(hWnd) != IDOK)
+		return 0;
+	auto edited = dlg.GetText();
+	if (lfOnly) {
+		std::wstring lf;
+		lf.reserve(edited.size());
+		for (size_t i = 0; i < edited.size(); i++)
+			if (!(edited[i] == L'\r' && i + 1 < edited.size() && edited[i + 1] == L'\n'))
+				lf += edited[i];
+		edited = std::move(lf);
+	}
+	auto bytes = TextDecode::Encode(edited, dlg.GetEncoding(), dlg.GetBom());
+	if (Change([&] { return Streams::WriteStream(m_File.Path, name, bytes); }, L"Writing the stream"))
+		Refresh(name);
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnEditBytes(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (m_Editing)
+		ConfirmStopEditing();
+	else
+		StartEditing();
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (m_Editing && SaveEdits())
+		StopEditing();
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnDiscard(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (m_Editing)
+		StopEditing();
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnRename(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	int row = GetSelectedRow();
+	if (row < 0 || m_Editing)
+		return 0;
+	auto name = m_File.Streams[row].Name;
+	CNameDlg dlg(L"Rename Stream", std::format(L"The new name for {}:", name), name, [&](auto& newName) {
+		// another case of its own name is a rename too
+		return !SameName(newName, name) && StreamExists(newName) ? std::wstring(L"The file has a stream with this name.") : std::wstring();
+		});
+	if (dlg.DoModal(Frame()->GetHwnd()) != IDOK || dlg.GetName() == name)
+		return 0;
+	if (Change([&] { return Streams::RenameStream(m_File.Path, name, dlg.GetName()); }, L"Renaming the stream"))
+		Refresh(dlg.GetName());
+	return 0;
+}
+
+LRESULT CFileStreamsView::OnDelete(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	int row = GetSelectedRow();
+	if (row < 0 || m_Editing)
+		return 0;
+	auto name = m_File.Streams[row].Name;
+	if (Ask(Frame()->GetHwnd(), std::format(L"Delete the stream {} ({})?", name, Helpers::FormatSize(m_File.Streams[row].Size)),
+		MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2) != IDOK)
+		return 0;
+	// the next one in the list gets the selection
+	auto next = row + 1 < (int)m_File.Streams.size() ? m_File.Streams[row + 1].Name : row > 0 ? m_File.Streams[row - 1].Name : std::wstring();
+	// the hex view lets go of the stream first
+	ShowStream(-1);
+	if (Change([&] { return Streams::DeleteStream(m_File.Path, name); }, L"Deleting the stream"))
+		Refresh(next);
+	else
+		ShowStream(GetSelectedRow());
+	return 0;
+}
+
+void CFileStreamsView::OnHexNotify(LPNMHDR hdr) {
+	if (!m_Editing)
+		return;
+	switch (hdr->code) {
+		case NMHX_VALUE_CHANGED:
+		case NMHX_UNDO:
+		case NMHX_REDO:
+		{
+			m_Changed = true;
+			// the text pane follows the edits
+			auto size = (size_t)(std::min<int64_t>)(m_Buffer->GetSize(), TextLimit);
+			m_TextData.resize(size);
+			if (size)
+				m_TextData.resize(m_Buffer->GetData(0, m_TextData.data(), (uint32_t)size));
+			ShowText();
+			UpdateStatus();
+			break;
+		}
+	}
+}
+
+bool CFileStreamsView::StartEditing() {
+	int row = m_Shown;
+	if (row < 0)
+		return false;
+	auto& stream = m_File.Streams[row];
+	auto hWnd = Frame()->GetHwnd();
+	if (stream.Size > ByteEditLimit) {
+		Ask(hWnd, std::format(L"The stream is too large to edit (more than {}).", Helpers::FormatSize(ByteEditLimit)), MB_ICONINFORMATION);
+		return false;
+	}
+	auto data = Streams::ReadStream(m_File.Path, stream.Name);
+	if (!data) {
+		Ask(hWnd, Helpers::ErrorText(data.error()), MB_ICONERROR);
+		return false;
+	}
+	auto buffer = std::make_unique<MemoryBuffer>(data->data(), (uint32_t)data->size(), true);
+	m_Hex.SetBufferManager(buffer.get());
+	m_Buffer = std::move(buffer);
+	m_EditedSize = (int64_t)data->size();
+	m_Hex.SetReadOnly(false);
+	m_Hex.SetOptions(HexControlOptions::GrayOutZeros);
+	m_Editing = true;
+	m_Changed = false;
+	m_Hex.SetFocus();
+	UpdateStatus();
+	return true;
+}
+
+void CFileStreamsView::StopEditing() {
+	m_Editing = false;
+	m_Changed = false;
+	m_Hex.SetReadOnly(true);
+	m_Hex.SetOptions(HexControlOptions::DisableUndoRedo | HexControlOptions::GrayOutZeros);
+	// the stream as it is
+	ShowStream(m_Shown);
+}
+
+bool CFileStreamsView::IsDirty() const {
+	return m_Editing && (m_Changed || m_Hex.IsModified() || m_Buffer->GetSize() != m_EditedSize);
+}
+
+bool CFileStreamsView::SaveEdits() {
+	auto& stream = m_File.Streams[m_Shown];
+	std::vector<uint8_t> data((size_t)m_Buffer->GetSize());
+	if (!data.empty())
+		m_Buffer->GetData(0, data.data(), (uint32_t)data.size());
+	if (!Change([&] { return Streams::WriteStream(m_File.Path, stream.Name, data); }, L"Saving the stream"))
+		return false;
+	// the list as it is, but for the stream's new size (a refresh would select rows, maybe while one is being selected)
+	stream.Size = (int64_t)data.size();
+	m_List.RedrawItems(m_Shown, m_Shown);
+	m_Changed = false;
+	m_EditedSize = stream.Size;
+	return true;
+}
+
+bool CFileStreamsView::ConfirmStopEditing() {
+	if (!m_Editing)
+		return true;
+	if (!IsDirty()) {
+		StopEditing();
+		return true;
+	}
+	auto answer = Ask(Frame()->GetHwnd(), std::format(L"Save the changes to the stream {}?", m_File.Streams[m_Shown].Name),
+		MB_ICONQUESTION | MB_YESNOCANCEL);
+	if (answer == IDCANCEL)
+		return false;
+	if (answer == IDYES && !SaveEdits())
+		return false;
+	StopEditing();
+	return true;
 }

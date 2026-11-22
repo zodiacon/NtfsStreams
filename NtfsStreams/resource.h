@@ -2,6 +2,8 @@
 // Used by NtfsStreams.rc
 //
 #define IDD_ABOUTBOX                    100
+#define IDD_NAME                        101
+#define IDD_TEXTSTREAM                  102
 #define IDR_MAINFRAME                   128
 // the views' context menus: one submenu each (CONTEXT_FOLDER...)
 #define IDR_CONTEXT                     129
@@ -19,6 +21,12 @@
 #define IDC_VERSION                     1000
 #define IDC_COPYRIGHT                   1001
 #define IDC_LINK                        1002
+#define IDC_PROMPT                      1003
+#define IDC_NAME                        1004
+#define IDC_NAME_ERROR                  1005
+#define IDC_ENCODING                    1006
+#define IDC_BOM                         1007
+#define IDC_TEXT                        1008
 #define ID_FILE_OPENFILE                32771
 #define ID_FILE_OPENFOLDER              32772
 #define ID_VIEW_VIEWFILES               32773
@@ -47,6 +55,17 @@
 #define ID_TEXT_ASCII                   32798
 #define ID_TEXT_UTF8                    32799
 #define ID_TEXT_UTF16                   32800
+#define ID_STREAM_NEW                   32801
+#define ID_STREAM_IMPORT                32802
+#define ID_STREAM_EDITTEXT              32803
+#define ID_STREAM_EDITBYTES             32804
+#define ID_STREAM_SAVE                  32805
+#define ID_STREAM_DISCARD               32806
+#define ID_STREAM_RENAME                32807
+#define ID_STREAM_DELETE                32808
+#define ID_FOLDER_UNBLOCK               32809
+#define ID_FOLDER_DELETESTREAMS         32810
+#define ID_OPTIONS_KEEPFILETIMES        32811
 // the status bar pane with the active view's summary
 #define ID_PANE_VIEW                    33000
 // File > Recent Files and Recent Folders: up to MaxRecent each
@@ -60,8 +79,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        212
-#define _APS_NEXT_COMMAND_VALUE         32801
-#define _APS_NEXT_CONTROL_VALUE         1003
+#define _APS_NEXT_COMMAND_VALUE         32812
+#define _APS_NEXT_CONTROL_VALUE         1009
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

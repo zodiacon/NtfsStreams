@@ -86,8 +86,6 @@ BEGIN
             MENUITEM "(None)",                  ID_FILE_RECENTFOLDERS, GRAYED
         END
         MENUITEM SEPARATOR
-        MENUITEM "&Export Stream...\tCtrl+E",   ID_STREAM_EXPORT
-        MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
     POPUP "&Edit"
@@ -106,9 +104,28 @@ BEGIN
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
     END
+    POPUP "&Stream"
+    BEGIN
+        MENUITEM "&New Stream...\tCtrl+N",      ID_STREAM_NEW
+        MENUITEM "&Import File as Stream...",   ID_STREAM_IMPORT
+        MENUITEM SEPARATOR
+        MENUITEM "Edit &Text...",               ID_STREAM_EDITTEXT
+        MENUITEM "Edit &Bytes",                 ID_STREAM_EDITBYTES
+        MENUITEM "&Save Changes\tCtrl+S",       ID_STREAM_SAVE
+        MENUITEM "&Discard Changes",            ID_STREAM_DISCARD
+        MENUITEM SEPARATOR
+        MENUITEM "&Rename...\tF2",              ID_STREAM_RENAME
+        MENUITEM "De&lete\tDel",                ID_STREAM_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "&Export...\tCtrl+E",          ID_STREAM_EXPORT
+        MENUITEM SEPARATOR
+        MENUITEM "&Unblock Selected Files",     ID_FOLDER_UNBLOCK
+        MENUITEM "Delete &All Streams of Selected Files", ID_FOLDER_DELETESTREAMS
+    END
     POPUP "&Options"
     BEGIN
         MENUITEM "&Dark Mode",                  ID_OPTIONS_DARKMODE
+        MENUITEM "&Keep File Times When Changing Streams", ID_OPTIONS_KEEPFILETIMES
     END
     POPUP "&Help"
     BEGIN
@@ -124,11 +141,23 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Open in &Explorer",           ID_FOLDER_OPENINEXPLORER
         MENUITEM "&Copy Path\tCtrl+C",          ID_EDIT_COPY
+        MENUITEM SEPARATOR
+        MENUITEM "&Unblock",                    ID_FOLDER_UNBLOCK
+        MENUITEM "&Delete All Streams",         ID_FOLDER_DELETESTREAMS
     END
     POPUP "Stream"
     BEGIN
         MENUITEM "&Export...\tCtrl+E",          ID_STREAM_EXPORT
         MENUITEM "&Copy Name\tCtrl+C",          ID_EDIT_COPY
+        MENUITEM SEPARATOR
+        MENUITEM "Edit &Text...",               ID_STREAM_EDITTEXT
+        MENUITEM "Edit &Bytes",                 ID_STREAM_EDITBYTES
+        MENUITEM SEPARATOR
+        MENUITEM "&Rename...\tF2",              ID_STREAM_RENAME
+        MENUITEM "De&lete\tDel",                ID_STREAM_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "&New Stream...\tCtrl+N",      ID_STREAM_NEW
+        MENUITEM "&Import File as Stream...",   ID_STREAM_IMPORT
     END
     POPUP "Bytes per Line"
     BEGIN
@@ -165,6 +194,8 @@ BEGIN
     "W",            ID_FILE_CLOSE,          VIRTKEY, CONTROL, NOINVERT
     "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
     "E",            ID_STREAM_EXPORT,       VIRTKEY, CONTROL, NOINVERT
+    "N",            ID_STREAM_NEW,          VIRTKEY, CONTROL, NOINVERT
+    "S",            ID_STREAM_SAVE,         VIRTKEY, CONTROL, NOINVERT
     VK_F5,          ID_VIEW_REFRESH,        VIRTKEY, NOINVERT
 END
 
@@ -173,6 +204,34 @@ END
 //
 // Dialog
 //
+
+IDD_NAME DIALOGEX 0, 0, 260, 78
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Name"
+FONT 9, "Segoe UI", 0, 0, 0x0
+BEGIN
+    LTEXT           "Name:",IDC_PROMPT,7,7,246,10
+    EDITTEXT        IDC_NAME,7,19,246,14,ES_AUTOHSCROLL
+    LTEXT           "",IDC_NAME_ERROR,7,37,246,10
+    DEFPUSHBUTTON   "OK",IDOK,149,57,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,203,57,50,14
+END
+
+IDD_TEXTSTREAM DIALOGEX 0, 0, 360, 240
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Text Stream"
+FONT 9, "Segoe UI", 0, 0, 0x0
+BEGIN
+    LTEXT           "&Name:",IDC_STATIC,7,9,40,10
+    EDITTEXT        IDC_NAME,50,7,303,14,ES_AUTOHSCROLL
+    LTEXT           "&Encoding:",IDC_STATIC,7,28,40,10
+    COMBOBOX        IDC_ENCODING,50,26,80,60,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "&Byte order mark",IDC_BOM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,140,28,90,10
+    EDITTEXT        IDC_TEXT,7,45,346,168,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
+    LTEXT           "",IDC_NAME_ERROR,7,222,230,10
+    DEFPUSHBUTTON   "OK",IDOK,249,219,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,303,219,50,14
+END
 
 IDD_ABOUTBOX DIALOGEX 0, 0, 213, 84
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
@@ -255,6 +314,17 @@ BEGIN
     ID_HEX_BYTESPERLINE     "How many bytes each line of the hex view shows\nBytes per Line"
     ID_HEX_DATASIZE         "The size of the hex view's items\nItem Size"
     ID_TEXT_ENCODING        "How the text pane decodes the stream\nText Encoding"
+    ID_STREAM_NEW           "Add a stream with text to the file\nNew Stream"
+    ID_STREAM_IMPORT        "Add a stream with a file's contents\nImport File as Stream"
+    ID_STREAM_EDITTEXT      "Edit the selected stream as text\nEdit Text"
+    ID_STREAM_EDITBYTES     "Edit the selected stream's bytes in the hex view\nEdit Bytes"
+    ID_STREAM_SAVE          "Write the edited bytes to the stream\nSave Changes"
+    ID_STREAM_DISCARD       "Forget the edits and show the stream as it is\nDiscard Changes"
+    ID_STREAM_RENAME        "Rename the selected stream\nRename"
+    ID_STREAM_DELETE        "Delete the selected stream\nDelete"
+    ID_FOLDER_UNBLOCK       "Remove the Zone.Identifier stream (the mark of the web) from the selected files\nUnblock"
+    ID_FOLDER_DELETESTREAMS "Delete all the alternate streams of the selected files\nDelete All Streams"
+    ID_OPTIONS_KEEPFILETIMES "Put the files' times back after their streams change\nKeep File Times"
 END
 
 STRINGTABLE

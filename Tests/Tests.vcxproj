@@ -45,6 +45,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>..\wtlhelper\WTLHelper;..\wtlhelper\WTL;..\wtlhelper;..\NtfsStreams;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -74,6 +75,7 @@
     <ClCompile Include="StreamsTests.cpp" />
     <ClCompile Include="HelpersTests.cpp" />
     <ClCompile Include="ViewDataTests.cpp" />
+    <ClCompile Include="EditTests.cpp" />
     <!-- the app's sources under test, compiled with this project's pch (the app's) -->
     <ClCompile Include="..\NtfsStreams\Streams.cpp" />
     <ClCompile Include="..\NtfsStreams\Helpers.cpp" />

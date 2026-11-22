@@ -43,10 +43,28 @@ namespace Streams {
 	DWORD DeleteStream(std::wstring const& path, std::wstring_view name);
 	// the stream's contents into a new file (replacing one there), copied in chunks
 	DWORD ExportStream(std::wstring const& path, std::wstring_view name, std::wstring const& target);
+	// a file's contents into the stream (created, or replaced), copied in chunks
+	DWORD ImportFile(std::wstring const& path, std::wstring_view name, std::wstring const& source);
 	// a name for the exported file: "file.txt_Zone.Identifier", with characters a file name can't have as '_'
 	std::wstring ExportFileName(std::wstring const& path, std::wstring_view name);
 	// fails with ERROR_ALREADY_EXISTS if a stream has the new name, unless replace
 	DWORD RenameStream(std::wstring const& path, std::wstring_view name, std::wstring_view newName, bool replace = false);
+
+	//
+	// a file's times (created, written, accessed) as they were when this was made, put back when it goes: changing a
+	// stream changes the file's last write time. Does nothing if not enabled or the file's times can't be read or set.
+	//
+	class FileTimesKeeper {
+	public:
+		explicit FileTimesKeeper(std::wstring const& path, bool enabled = true);
+		~FileTimesKeeper();
+		FileTimesKeeper(FileTimesKeeper const&) = delete;
+		FileTimesKeeper& operator=(FileTimesKeeper const&) = delete;
+
+	private:
+		wil::unique_hfile m_File;
+		FILE_BASIC_INFO m_Info{};
+	};
 
 	struct ScanOptions {
 		bool Recursive{ false };

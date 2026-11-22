@@ -38,6 +38,8 @@ public:
 		m_Active = active;
 	}
 	void UpdateUI(CUpdateUIBase& ui) override;
+	// unsaved byte edits: save them, discard them, or stay (false)
+	bool CanClose() override;
 	void OnThemeChanged(bool dark) override;
 	void OnDpiChanged(UINT dpi) override;
 
@@ -48,6 +50,9 @@ public:
 
 	// the bytes of a stream the text pane shows at most
 	static constexpr size_t TextLimit = 1 << 20;
+	// the largest stream Edit Text and Edit Bytes take (read into memory)
+	static constexpr int64_t TextEditLimit = 16 << 20;
+	static constexpr int64_t ByteEditLimit = 64 << 20;
 
 	BEGIN_MSG_MAP(CFileStreamsView)
 		// the view's own tool bar's commands, as those the frame routes here (ALT_MSG_MAP(1))
@@ -56,7 +61,14 @@ public:
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
+		// the hex view's (its codes are its own, so by window)
+		if (uMsg == WM_NOTIFY && reinterpret_cast<LPNMHDR>(lParam)->hwndFrom == m_Hex.m_hWnd) {
+			OnHexNotify(reinterpret_cast<LPNMHDR>(lParam));
+			lResult = 0;
+			return TRUE;
+		}
 		NOTIFY_CODE_HANDLER(TBN_DROPDOWN, OnDropDown)
+		NOTIFY_CODE_HANDLER(LVN_KEYDOWN, OnListKeyDown)
 		CHAIN_MSG_MAP(CVirtualListView<CFileStreamsView>)
 		CHAIN_MSG_MAP(CViewBase<CFileStreamsView>)
 	ALT_MSG_MAP(1)
@@ -66,6 +78,14 @@ public:
 		COMMAND_ID_HANDLER(ID_HEX_BYTESPERLINE, OnDropDownButton)
 		COMMAND_ID_HANDLER(ID_HEX_DATASIZE, OnDropDownButton)
 		COMMAND_ID_HANDLER(ID_TEXT_ENCODING, OnDropDownButton)
+		COMMAND_ID_HANDLER(ID_STREAM_NEW, OnNewStream)
+		COMMAND_ID_HANDLER(ID_STREAM_IMPORT, OnImport)
+		COMMAND_ID_HANDLER(ID_STREAM_EDITTEXT, OnEditText)
+		COMMAND_ID_HANDLER(ID_STREAM_EDITBYTES, OnEditBytes)
+		COMMAND_ID_HANDLER(ID_STREAM_SAVE, OnSave)
+		COMMAND_ID_HANDLER(ID_STREAM_DISCARD, OnDiscard)
+		COMMAND_ID_HANDLER(ID_STREAM_RENAME, OnRename)
+		COMMAND_ID_HANDLER(ID_STREAM_DELETE, OnDelete)
 		CHAIN_MSG_MAP_ALT(CViewBase<CFileStreamsView>, 1)
 	END_MSG_MAP()
 
@@ -85,9 +105,32 @@ private:
 	LRESULT OnCopy(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnExport(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnDropDownButton(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnListKeyDown(int /*idCtrl*/, LPNMHDR hdr, BOOL& bHandled);
+	LRESULT OnNewStream(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnImport(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnEditText(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnEditBytes(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDiscard(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnRename(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnDelete(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	void OnHexNotify(LPNMHDR hdr);
 
-	// the streams read again (the list keeps its sorting and, by name, its selection)
-	void Refresh();
+	// the streams read again (the list keeps its sorting and its selection by name: select, if given, else the one selected)
+	void Refresh(std::wstring const& select = {});
+	// Edit Bytes: the shown stream read into memory, the hex view editable
+	bool StartEditing();
+	// back to the stream as it is (the edits, if any, gone)
+	void StopEditing();
+	// the edited bytes written to the stream; false (and a message) if that failed
+	bool SaveEdits();
+	bool IsDirty() const;
+	// before the shown stream goes away (another one shown, a refresh, the tab closed): saves or discards unsaved edits
+	// as the user says; false: the user canceled
+	bool ConfirmStopEditing();
+	bool StreamExists(std::wstring const& name) const;
+	// a change to the file's streams, keeping its times as the option says; error: what failed, shown
+	bool Change(std::function<DWORD()> const& change, PCWSTR what);
 	// the stream at the list's row in the hex view and the text pane (-1: none)
 	void ShowStream(int row);
 	void ShowText();
@@ -118,5 +161,9 @@ private:
 	TextDecode::Encoding m_Encoding{ TextDecode::Encoding::Auto };
 	std::wstring m_Error;	// the last refresh's, shown in the status bar instead
 	std::wstring m_StreamError;	// opening the shown stream's, shown in the text pane
+	int64_t m_EditedSize{ 0 };	// the stream's when its editing started
 	bool m_Active{ false };
+	bool m_Editing{ false };	// Edit Bytes: the hex view holds the stream in memory and can change it
+	bool m_Changed{ false };	// a byte changed while editing
+	bool m_Restoring{ false };	// putting the selection back after a canceled switch
 };

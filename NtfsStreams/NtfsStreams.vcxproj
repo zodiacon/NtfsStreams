@@ -65,6 +65,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>..\wtlhelper\WTLHelper;..\wtlhelper\WTL;..\wtlhelper;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -114,6 +115,7 @@
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="NtfsStreams.cpp" />
     <ClCompile Include="StreamBuffer.cpp" />
+    <ClCompile Include="StreamDialogs.cpp" />
     <ClCompile Include="Streams.cpp" />
     <ClCompile Include="TextDecode.cpp" />
     <ClCompile Include="pch.cpp">
@@ -131,6 +133,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="StreamBuffer.h" />
+    <ClInclude Include="StreamDialogs.h" />
     <ClInclude Include="Streams.h" />
     <ClInclude Include="TextDecode.h" />
     <ClInclude Include="ViewBase.h" />

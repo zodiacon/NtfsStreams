@@ -51,8 +51,11 @@ BOOL CMainFrame::OnIdle() {
 	UIEnable(ID_VIEW_CLOSEALL, count > 0);
 	UIEnable(ID_VIEW_CLOSEALLBUTTHIS, count > 1);
 	// the active view enables its own
-	for (auto id : { ID_VIEW_VIEWFILES, ID_VIEW_REFRESH, ID_EDIT_COPY, ID_STREAM_EXPORT })
+	for (auto id : { ID_VIEW_VIEWFILES, ID_VIEW_REFRESH, ID_EDIT_COPY, ID_STREAM_EXPORT, ID_STREAM_NEW, ID_STREAM_IMPORT, ID_STREAM_EDITTEXT,
+		ID_STREAM_EDITBYTES, ID_STREAM_SAVE, ID_STREAM_DISCARD, ID_STREAM_RENAME, ID_STREAM_DELETE, ID_FOLDER_UNBLOCK, ID_FOLDER_DELETESTREAMS }) {
 		UIEnable(id, false);
+		UISetCheck(id, false);
+	}
 	if (m_ActiveView)
 		m_ActiveView->UpdateUI(*this);
 	UIUpdateToolBar();
@@ -98,6 +101,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	ShowToolBar(settings.ToolBar());
 	ShowStatusBar(settings.StatusBar());
 	UISetCheck(ID_OPTIONS_DARKMODE, settings.DarkMode());
+	UISetCheck(ID_OPTIONS_KEEPFILETIMES, settings.KeepFileTimes());
 	SetDarkMode(settings.DarkMode());
 
 	return 0;
@@ -169,9 +173,31 @@ LRESULT CMainFrame::OnTabClose(int /*idCtrl*/, LPNMHDR hdr, BOOL& bHandled) {
 		bHandled = FALSE;
 		return 0;
 	}
+	auto view = GetView((int)hdr->idFrom);
+	// unsaved changes the user keeps: the page stays (1)
+	if (view && !view->CanClose())
+		return 1;
 	// the tab view removes the page (0), which destroys the view's window
-	ForgetView(GetView((int)hdr->idFrom));
+	ForgetView(view);
 	return 0;
+}
+
+LRESULT CMainFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled) {
+	if (!CanCloseAll())
+		return 0;
+	bHandled = FALSE;
+	return 0;
+}
+
+bool CMainFrame::CanCloseAll() {
+	for (int page = 0; page < m_Tabs.GetPageCount(); page++) {
+		auto view = GetView(page);
+		if (view && !view->CanClose()) {
+			m_Tabs.SetActivePage(page);
+			return false;
+		}
+	}
+	return true;
 }
 
 LRESULT CMainFrame::OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
@@ -234,6 +260,8 @@ LRESULT CMainFrame::OnCloseTab(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 }
 
 LRESULT CMainFrame::OnCloseAll(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (!CanCloseAll())
+		return 0;
 	m_Views.clear();
 	m_ActiveView = nullptr;
 	m_Tabs.RemoveAllPages();
@@ -275,6 +303,15 @@ LRESULT CMainFrame::OnDarkMode(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 	settings.Save();
 	UISetCheck(ID_OPTIONS_DARKMODE, dark);
 	SetDarkMode(dark);
+	return 0;
+}
+
+LRESULT CMainFrame::OnKeepFileTimes(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	auto& settings = AppSettings::Get();
+	bool keep = !settings.KeepFileTimes();
+	settings.KeepFileTimes(keep);
+	settings.Save();
+	UISetCheck(ID_OPTIONS_KEEPFILETIMES, keep);
 	return 0;
 }
 
@@ -456,7 +493,10 @@ void CMainFrame::ForgetView(IView* view) {
 }
 
 void CMainFrame::CloseTab(int page) {
-	ForgetView(GetView(page));
+	auto view = GetView(page);
+	if (view && !view->CanClose())
+		return;
+	ForgetView(view);
 	// destroys the view's window, and the view deletes itself
 	m_Tabs.RemovePage(page);
 }

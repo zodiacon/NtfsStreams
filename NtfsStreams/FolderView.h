@@ -62,6 +62,8 @@ public:
 		COMMAND_ID_HANDLER(ID_FOLDER_STOP, OnStop)
 		COMMAND_ID_HANDLER(ID_FOLDER_OPENINEXPLORER, OnOpenInExplorer)
 		COMMAND_ID_HANDLER(ID_EDIT_COPY, OnCopy)
+		COMMAND_ID_HANDLER(ID_FOLDER_UNBLOCK, OnDeleteStreams)
+		COMMAND_ID_HANDLER(ID_FOLDER_DELETESTREAMS, OnDeleteStreams)
 		CHAIN_MSG_MAP_ALT(CViewBase<CFolderView>, 1)
 	END_MSG_MAP()
 
@@ -101,6 +103,8 @@ private:
 	LRESULT OnStop(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnOpenInExplorer(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCopy(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	// Unblock (the Zone.Identifier streams) and Delete All Streams, of the selected files; their rows are read again
+	LRESULT OnDeleteStreams(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	// a new scan, after the running one (if any) ended; the list starts empty
 	void StartScan();
