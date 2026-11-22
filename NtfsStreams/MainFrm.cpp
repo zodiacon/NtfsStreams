@@ -286,6 +286,7 @@ LRESULT CMainFrame::OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 LRESULT CMainFrame::OnOpenFile(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	CShellFileOpenDialog dlg(nullptr, FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_ALLOWMULTISELECT);
 	dlg.GetPtr()->SetTitle(L"Open File");
+	SuspendResumeHook sr;
 	if (dlg.DoModal(m_hWnd) != IDOK)
 		return 0;
 
@@ -307,6 +308,7 @@ LRESULT CMainFrame::OnOpenFile(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 LRESULT CMainFrame::OnOpenFolder(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
 	CShellFileOpenDialog dlg(nullptr, FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_PICKFOLDERS);
 	dlg.GetPtr()->SetTitle(L"Open Folder");
+	SuspendResumeHook sr;
 	if (dlg.DoModal(m_hWnd) != IDOK)
 		return 0;
 	CString path;
