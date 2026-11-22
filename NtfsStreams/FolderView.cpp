@@ -24,8 +24,64 @@ namespace {
 	}
 }
 
-CFolderView::CFolderView(IMainFrame* frame, std::wstring folder) : CViewBase(frame), m_Folder(std::move(folder)),
+CFolderView::CFolderView(IMainFrame* frame, std::wstring folder) : CViewBase(frame), m_Panes(frame, this), m_Folder(std::move(folder)),
 	m_Recursive(AppSettings::Get().FolderRecursive() != 0) {
+}
+
+void CFolderView::OnStreamsChanged(Streams::FileStreams const& file) {
+	// the row follows (kept with no streams left, until the next scan: it's the one shown)
+	auto it = std::ranges::find_if(m_Files, [&](auto& f) { return _wcsicmp(f.Path.c_str(), file.Path.c_str()) == 0; });
+	if (it == m_Files.end())
+		return;
+	it->Streams = file.Streams;
+	int row = int(it - m_Files.begin());
+	m_List.RedrawItems(row, row);
+	UpdateStatus();
+}
+
+void CFolderView::OnStateChanged(HWND hList, int /*from*/, int /*to*/, UINT oldState, UINT newState) {
+	if (hList != m_List || m_Restoring || !((oldState ^ newState) & LVIS_SELECTED))
+		return;
+	// once the selection settles
+	SetTimer(SelectTimer, SelectDelay);
+}
+
+void CFolderView::ShowSelected() {
+	std::wstring path;
+	bool dir = false;
+	auto selected = m_List.GetSelectedCount();
+	if (selected == 1) {
+		int row = m_List.GetNextItem(-1, LVNI_SELECTED);
+		path = m_Files[row].Path;
+		dir = m_Files[row].IsDirectory;
+	}
+	if (path == m_ShownPath && !path.empty())
+		return;
+
+	if (path.empty()) {
+		if (ClearPanes())
+			return;
+	}
+	else {
+		// the new path first: showing the file updates the status bar, which names it
+		auto previous = m_ShownPath;
+		m_ShownPath = path;
+		if (m_Panes.ShowFile(path, dir))
+			return;
+		m_ShownPath = previous;
+	}
+	// the user kept the shown file's unsaved edits: it gets the selection back
+	m_Restoring = true;
+	SelectPaths({ m_ShownPath });
+	m_Restoring = false;
+}
+
+bool CFolderView::ClearPanes() {
+	auto selected = m_List.GetSelectedCount();
+	if (!m_Panes.Clear(selected > 1 ? std::format(L"{} files selected.", selected) : L"Select a file to see its streams."))
+		return false;
+	m_ShownPath.clear();
+	return true;
 }
 
 CString CFolderView::GetTitle() const {
@@ -46,7 +102,11 @@ std::wstring CFolderView::GetStatusText() const {
 		text += std::format(L", {} not readable", Helpers::FormatNumber(m_Result.Errors));
 	if (m_Result.Canceled)
 		text += L", stopped";
-	return text + L")";
+	text += L")";
+	// and the shown file's
+	if (auto panes = m_Panes.GetStatusText(); !panes.empty())
+		text += std::format(L" | {}: {}", Helpers::FileName(m_ShownPath), panes);
+	return text;
 }
 
 void CFolderView::OnActivate(bool active) {
@@ -54,9 +114,12 @@ void CFolderView::OnActivate(bool active) {
 }
 
 void CFolderView::UpdateUI(CUpdateUIBase& ui) {
+	// the stream commands are the panes'; Refresh (the scan) and, with the focus here, Copy (the paths) are the folder's
+	m_Panes.UpdateUI(ui);
 	bool selected = m_List.GetSelectedCount() > 0;
 	ui.UIEnable(ID_VIEW_VIEWFILES, selected);
-	ui.UIEnable(ID_EDIT_COPY, selected);
+	if (!m_Panes.HasFocus())
+		ui.UIEnable(ID_EDIT_COPY, selected);
 	ui.UIEnable(ID_VIEW_REFRESH, true);
 	ui.UIEnable(ID_FOLDER_UNBLOCK, selected);
 	ui.UIEnable(ID_FOLDER_DELETESTREAMS, selected);
@@ -91,6 +154,10 @@ LRESULT CFolderView::OnDeleteStreams(WORD /*wNotifyCode*/, WORD wID, HWND /*hWnd
 		std::format(L"Delete all {} streams of {} file{}?", count, targets.size(), targets.size() == 1 ? L"" : L"s") :
 		std::format(L"Remove the Zone.Identifier stream (where the file came from) from {} file{}?", targets.size(), targets.size() == 1 ? L"" : L"s");
 	if (AtlMessageBox(hWnd, question.c_str(), IDR_MAINFRAME, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2) != IDOK)
+		return 0;
+	// the shown file's streams may go: its unsaved edits first
+	bool shownChanges = std::ranges::any_of(targets, [&](auto& t) { return _wcsicmp(t.first.c_str(), m_ShownPath.c_str()) == 0; });
+	if (shownChanges && !ClearPanes())
 		return 0;
 
 	CWaitCursor wait;
@@ -128,7 +195,8 @@ LRESULT CFolderView::OnDeleteStreams(WORD /*wNotifyCode*/, WORD wID, HWND /*hWnd
 	return 0;
 }
 
-void CFolderView::OnDpiChanged(UINT /*dpi*/) {
+void CFolderView::OnDpiChanged(UINT dpi) {
+	m_Panes.OnDpiChanged(dpi);
 	m_List.SetImageList(Frame()->GetImageList(), LVSIL_SMALL);
 	ToolbarHelper::UpdateToolBarImages(m_Bar, s_BarButtons, _countof(s_BarButtons), BarImageSize);
 }
@@ -173,8 +241,9 @@ LRESULT CFolderView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 	AddSimpleReBarBand(m_Bar);
 	UIAddToolBar(m_Bar);
 
-	m_hWndClient = m_List.Create(m_hWnd, rcDefault, nullptr,
-		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS);
+	m_hWndClient = m_Splitter.Create(m_hWnd, rcDefault, nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+	m_List.Create(m_Splitter, rcDefault, nullptr,
+		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS);
 	m_List.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_INFOTIP);
 	m_List.SetImageList(Frame()->GetImageList(), LVSIL_SMALL);
 	SuspendHookWhilePainting(m_List);
@@ -184,12 +253,18 @@ LRESULT CFolderView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 	m_List.InsertColumn(1, L"Streams", LVCFMT_RIGHT, scale(70));
 	m_List.InsertColumn(2, L"Total Size", LVCFMT_RIGHT, scale(120));
 
+	m_Panes.DoCreate(m_Splitter);
+	m_Splitter.SetSplitterPanes(m_List, m_Panes);
+	m_Splitter.SetSplitterPosPct(std::clamp(AppSettings::Get().FolderSplitterPos(), 15, 85), false);
+	ClearPanes();
+
 	UISetCheck(ID_FOLDER_SUBFOLDERS, m_Recursive);
 	StartScan();
 	return 0;
 }
 
 LRESULT CFolderView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled) {
+	AppSettings::Get().FolderSplitterPos(m_Splitter.GetSplitterPosPct());
 	// the thread posts to this window; it's done before the window goes
 	StopScan(true);
 	bHandled = FALSE;
@@ -197,11 +272,18 @@ LRESULT CFolderView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 }
 
 LRESULT CFolderView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled) {
-	if (wParam != ProgressTimer) {
-		bHandled = FALSE;
-		return 0;
+	switch (wParam) {
+		case ProgressTimer:
+			UpdateStatus();
+			break;
+		case SelectTimer:
+			KillTimer(SelectTimer);
+			ShowSelected();
+			break;
+		default:
+			bHandled = FALSE;
+			break;
 	}
-	UpdateStatus();
 	return 0;
 }
 
@@ -271,11 +353,17 @@ LRESULT CFolderView::OnViewFiles(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWnd
 }
 
 LRESULT CFolderView::OnRefresh(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
-	StartScan();
+	// the rows go: the shown file's unsaved edits first
+	if (ClearPanes())
+		StartScan();
 	return 0;
 }
 
 LRESULT CFolderView::OnSubfolders(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	if (!ClearPanes()) {
+		UISetCheck(ID_FOLDER_SUBFOLDERS, m_Recursive);
+		return 0;
+	}
 	m_Recursive = !m_Recursive;
 	UISetCheck(ID_FOLDER_SUBFOLDERS, m_Recursive);
 	// the choice for the folders opened next
@@ -306,7 +394,12 @@ LRESULT CFolderView::OnOpenInExplorer(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /
 	return 0;
 }
 
-LRESULT CFolderView::OnCopy(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+LRESULT CFolderView::OnCopy(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& bHandled) {
+	// in the panes: theirs (the hex, the text or the stream's name)
+	if (m_Panes.HasFocus()) {
+		bHandled = FALSE;
+		return 0;
+	}
 	std::wstring text;
 	for (auto& path : GetSelectedPaths())
 		text += path + L"\r\n";

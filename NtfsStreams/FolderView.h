@@ -3,7 +3,9 @@
 #include "resource.h"
 #include "ViewBase.h"
 #include "Streams.h"
+#include "StreamPanes.h"
 #include <VirtualListView.h>
+#include <CustomSplitterWindow.h>
 #include <mutex>
 #include <thread>
 
@@ -12,11 +14,14 @@
 // on a thread of its own (Streams::ScanFolder), whose finds are posted to the view in batches, so the list fills while
 // the scan goes on; a timer shows how many files were looked at so far. Refresh scans again, Stop ends the scan early.
 // Enter, a double click or View Streams opens the selected files' streams in tabs of their own. The selection is kept
-// by path, so sorting and rows coming in don't move it to other files.
+// by path, so sorting and rows coming in don't move it to other files. At the right, the stream panes (CStreamPanes) show
+// the selected file's streams, a moment (SelectDelay) after the selection settles, so arrow keys don't read every file
+// on the way; the frame's commands go to the folder view first, then to the panes.
 //
 class CFolderView :
 	public CViewBase<CFolderView>,
-	public CVirtualListView<CFolderView> {
+	public CVirtualListView<CFolderView>,
+	public IStreamPanesHost {
 public:
 	CFolderView(IMainFrame* frame, std::wstring folder);
 
@@ -34,13 +39,26 @@ public:
 	std::wstring GetStatusText() const override;
 	void OnActivate(bool active) override;
 	void UpdateUI(CUpdateUIBase& ui) override;
-	void OnDpiChanged(UINT /*dpi*/) override;
+	bool CanClose() override {
+		return m_Panes.CanLeave();
+	}
+	void OnThemeChanged(bool dark) override {
+		m_Panes.OnThemeChanged(dark);
+	}
+	void OnDpiChanged(UINT dpi) override;
+
+	// IStreamPanesHost
+	void OnStreamsChanged(Streams::FileStreams const& file) override;
+	void OnPanesStatusChanged() override {
+		UpdateStatus();
+	}
 
 	// CVirtualListView
 	CString GetColumnText(HWND, int row, int col) const;
 	int GetRowImage(HWND, int row, int col) const;
 	void DoSort(SortInfo const* si);
 	bool OnDoubleClickList(HWND, int row, int col, POINT const& pt);
+	void OnStateChanged(HWND, int from, int to, UINT oldState, UINT newState);
 
 	BEGIN_MSG_MAP(CFolderView)
 		// the view's own tool bar's commands, as those the frame routes here (ALT_MSG_MAP(1))
@@ -64,6 +82,9 @@ public:
 		COMMAND_ID_HANDLER(ID_EDIT_COPY, OnCopy)
 		COMMAND_ID_HANDLER(ID_FOLDER_UNBLOCK, OnDeleteStreams)
 		COMMAND_ID_HANDLER(ID_FOLDER_DELETESTREAMS, OnDeleteStreams)
+		// the rest are the panes' (the stream commands)
+		if (uMsg == WM_COMMAND && m_Panes.m_hWnd && m_Panes.ProcessWindowMessage(m_Panes, uMsg, wParam, lParam, lResult, 1))
+			return TRUE;
 		CHAIN_MSG_MAP_ALT(CViewBase<CFolderView>, 1)
 	END_MSG_MAP()
 
@@ -78,6 +99,8 @@ private:
 	static constexpr UINT WM_SCAN_FOUND = WM_APP + 1;
 	static constexpr UINT WM_SCAN_DONE = WM_APP + 2;
 	static constexpr UINT_PTR ProgressTimer = 1;
+	static constexpr UINT_PTR SelectTimer = 2;
+	static constexpr UINT SelectDelay = 100;	// ms
 
 	enum class Column { Name, Streams, TotalSize };
 
@@ -117,8 +140,16 @@ private:
 	// the path relative to the scanned folder
 	std::wstring RelativeName(std::wstring const& path) const;
 	void UpdateStatus() const;
+	// the panes show the selected file (one selected), or say what to do; a file with unsaved edits the user keeps
+	// stays, and gets the selection back
+	void ShowSelected();
+	// the panes with nothing in them (false: the user kept unsaved edits)
+	bool ClearPanes();
 
+	CCustomSplitterWindow m_Splitter;	// the files | the panes
 	CListViewCtrl m_List;
+	CStreamPanes m_Panes;
+	std::wstring m_ShownPath;	// the file in the panes
 	CToolBarCtrl m_Bar;
 	std::wstring m_Folder;
 	std::vector<Streams::FileStreams> m_Files;
@@ -129,4 +160,5 @@ private:
 	bool m_Recursive;
 	bool m_Scanning{ false };
 	bool m_Active{ false };
+	bool m_Restoring{ false };	// putting the selection back on the shown file
 };

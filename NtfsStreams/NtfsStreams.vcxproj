@@ -116,6 +116,7 @@
     <ClCompile Include="NtfsStreams.cpp" />
     <ClCompile Include="StreamBuffer.cpp" />
     <ClCompile Include="StreamDialogs.cpp" />
+    <ClCompile Include="StreamPanes.cpp" />
     <ClCompile Include="Streams.cpp" />
     <ClCompile Include="TextDecode.cpp" />
     <ClCompile Include="pch.cpp">
@@ -134,6 +135,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="StreamBuffer.h" />
     <ClInclude Include="StreamDialogs.h" />
+    <ClInclude Include="StreamPanes.h" />
     <ClInclude Include="Streams.h" />
     <ClInclude Include="TextDecode.h" />
     <ClInclude Include="ViewBase.h" />

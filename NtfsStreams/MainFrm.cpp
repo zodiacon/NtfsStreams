@@ -342,7 +342,7 @@ bool CMainFrame::OpenFile(std::wstring const& file, bool activate) {
 	}
 
 	bool dir = (::GetFileAttributes(path.c_str()) & FILE_ATTRIBUTE_DIRECTORY) != 0;
-	auto view = new CFileStreamsView(this, Streams::FileStreams{ path, std::move(*streams), dir });
+	auto view = new CFileStreamsView(this, path, dir);
 	if (!AddView(view, [=](HWND hParent) { return view->DoCreate(hParent); }, activate))
 		return false;
 	AddRecent(false, path);

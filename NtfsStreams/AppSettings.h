@@ -15,7 +15,8 @@ struct AppSettings : Settings {
 		SETTING(HexBytesPerLine, 16, SettingType::Int32);
 		SETTING(HexDataSize, 1, SettingType::Int32);
 		SETTING(TextEncoding, 0, SettingType::Int32);
-		SETTING(StreamListPos, 25, SettingType::Int32);
+		SETTING(StreamListPos, 20, SettingType::Int32);
+		SETTING(FolderSplitterPos, 40, SettingType::Int32);	// a folder tab's: the files' share of the width, in percent
 		SETTING(HexPanePos, 65, SettingType::Int32);
 		m_settings.insert({ L"RecentFiles", Setting(L"RecentFiles", std::vector<std::wstring>{}) });
 		m_settings.insert({ L"RecentFolders", Setting(L"RecentFolders", std::vector<std::wstring>{}) });
@@ -30,6 +31,7 @@ struct AppSettings : Settings {
 	DEF_SETTING(HexDataSize, int)
 	DEF_SETTING(TextEncoding, int)
 	DEF_SETTING(StreamListPos, int)
+	DEF_SETTING(FolderSplitterPos, int)
 	DEF_SETTING(HexPanePos, int)
 	DEF_SETTING_MULTI(RecentFiles)
 	DEF_SETTING_MULTI(RecentFolders)

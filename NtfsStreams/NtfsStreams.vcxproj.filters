@@ -39,6 +39,9 @@
     <ClCompile Include="StreamDialogs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StreamPanes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Streams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StreamDialogs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StreamPanes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streams.h">
