@@ -110,6 +110,7 @@
     <ClCompile Include="AboutDlg.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="NtfsStreams.cpp" />
+    <ClCompile Include="Streams.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -120,6 +121,7 @@
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Streams.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NtfsStreams.rc" />
