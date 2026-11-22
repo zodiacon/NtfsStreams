@@ -20,7 +20,7 @@ int wmain(int argc, const wchar_t* const argv[]) {
 	}
 
 	DWORD dummy;
-	::WriteFile(hFile, argv[3], (1 + ::wcslen(argv[3])) * sizeof(wchar_t), &dummy, nullptr);
+	::WriteFile(hFile, argv[3], DWORD((1 + ::wcslen(argv[3])) * sizeof(wchar_t)), &dummy, nullptr);
 	::SetEndOfFile(hFile);
 	::CloseHandle(hFile);
 
