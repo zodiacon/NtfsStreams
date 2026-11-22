@@ -29,6 +29,20 @@ static int Run(int nCmdShow) {
 	if (!settings.LoadWindowPosition(wndMain, AppSettings::MainWindowPlacement))
 		wndMain.ShowWindow(nCmdShow);
 
+	// NtfsStreams.exe [path...]: each a file or a folder to open, the first one shown
+	int argc = 0;
+	if (auto argv = ::CommandLineToArgvW(::GetCommandLine(), &argc); argv) {
+		bool first = true;
+		for (int i = 1; i < argc; i++) {
+			auto attributes = ::GetFileAttributes(argv[i]);
+			bool opened = attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) ?
+				wndMain.OpenFolder(argv[i]) : wndMain.OpenFile(argv[i], first);
+			if (opened)
+				first = false;
+		}
+		::LocalFree(argv);
+	}
+
 	int nRet = theLoop.Run();
 
 	_Module.RemoveMessageLoop();

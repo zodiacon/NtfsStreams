@@ -87,6 +87,7 @@ BEGIN
     BEGIN
         MENUITEM "&View Selected Files\tEnter", ID_VIEW_VIEWFILES
         MENUITEM SEPARATOR
+        MENUITEM "Close &Tab\tCtrl+W",          ID_FILE_CLOSE
         MENUITEM "&Close All",                  ID_VIEW_CLOSEALL
         MENUITEM "Close All &except Current",   ID_VIEW_CLOSEALLBUTTHIS
         MENUITEM SEPARATOR
@@ -113,6 +114,7 @@ IDR_MAINFRAME ACCELERATORS
 BEGIN
     "O",            ID_FILE_OPENFILE,       VIRTKEY, CONTROL, NOINVERT
     "O",            ID_FILE_OPENFOLDER,     VIRTKEY, SHIFT, CONTROL, NOINVERT
+    "W",            ID_FILE_CLOSE,          VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -189,6 +191,7 @@ BEGIN
     ID_FILE_OPENFILE        "Show the alternate streams of a file\nOpen File"
     ID_FILE_OPENFOLDER      "Show the files with alternate streams in a folder\nOpen Folder"
     ID_VIEW_VIEWFILES       "Show the streams of the selected files\nView Files"
+    ID_FILE_CLOSE           "Close the active tab\nClose Tab"
     ID_VIEW_CLOSEALL        "Close all tabs\nClose All"
     ID_VIEW_CLOSEALLBUTTHIS "Close all tabs except the current one\nClose All except Current"
     ID_OPTIONS_DARKMODE     "Switch between dark and light mode\nDark Mode"

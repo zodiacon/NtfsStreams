@@ -72,8 +72,10 @@
     </ClCompile>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="StreamsTests.cpp" />
+    <ClCompile Include="HelpersTests.cpp" />
     <!-- the app's sources under test, compiled with this project's pch (the app's) -->
     <ClCompile Include="..\NtfsStreams\Streams.cpp" />
+    <ClCompile Include="..\NtfsStreams\Helpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

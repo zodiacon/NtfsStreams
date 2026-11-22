@@ -20,6 +20,8 @@
 #define ID_OPTIONS_DARKMODE             32776
 #define ID_FILE_RECENTFILES             32777
 #define ID_FILE_RECENTFOLDERS           32778
+// the status bar pane with the active view's summary
+#define ID_PANE_VIEW                    33000
 // File > Recent Files and Recent Folders: up to MaxRecent each
 #define ID_RECENT_FILE_FIRST            40100
 #define ID_RECENT_FILE_LAST             40115

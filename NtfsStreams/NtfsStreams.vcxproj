@@ -108,6 +108,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AboutDlg.cpp" />
+    <ClCompile Include="FileStreamsView.cpp" />
+    <ClCompile Include="FolderView.cpp" />
+    <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="NtfsStreams.cpp" />
     <ClCompile Include="Streams.cpp" />
@@ -118,10 +121,15 @@
   <ItemGroup>
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="AppSettings.h" />
+    <ClInclude Include="FileStreamsView.h" />
+    <ClInclude Include="FolderView.h" />
+    <ClInclude Include="Helpers.h" />
+    <ClInclude Include="Interfaces.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Streams.h" />
+    <ClInclude Include="ViewBase.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NtfsStreams.rc" />
