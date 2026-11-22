@@ -4,6 +4,7 @@
 #include <functional>
 #include <span>
 #include <stop_token>
+#include <atomic>
 
 //
 // NTFS alternate data streams: the app's non-UI core (no windows here, so the tests can call all of it).
@@ -46,6 +47,8 @@ namespace Streams {
 	struct ScanOptions {
 		bool Recursive{ false };
 		bool IncludeDirectories{ true };	// directories' own streams
+		// if set, counts the files looked at as the scan goes (ScanResult::Files at the end), for a progress display
+		std::atomic<uint32_t>* Scanned{ nullptr };
 	};
 
 	struct ScanResult {

@@ -3,12 +3,19 @@
 //
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
+// the views' context menus: one submenu each (CONTEXT_FOLDER...)
+#define IDR_CONTEXT                     129
 #define IDI_FILE                        201
 #define IDI_FILE_VIEW                   202
 #define IDI_FOLDER                      203
 #define IDI_FOLDER_VIEW                 204
 #define IDI_VIEW                        205
 #define IDI_CLOSE                       206
+#define IDI_REFRESH                     207
+#define IDI_STOP                        208
+#define IDI_SUBFOLDERS                  209
+#define IDI_COPY                        210
+#define IDI_DELETE                      211
 #define IDC_VERSION                     1000
 #define IDC_COPYRIGHT                   1001
 #define IDC_LINK                        1002
@@ -20,6 +27,9 @@
 #define ID_OPTIONS_DARKMODE             32776
 #define ID_FILE_RECENTFILES             32777
 #define ID_FILE_RECENTFOLDERS           32778
+#define ID_FOLDER_SUBFOLDERS            32780
+#define ID_FOLDER_STOP                  32781
+#define ID_FOLDER_OPENINEXPLORER        32782
 // the status bar pane with the active view's summary
 #define ID_PANE_VIEW                    33000
 // File > Recent Files and Recent Folders: up to MaxRecent each
@@ -32,8 +42,8 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        207
-#define _APS_NEXT_COMMAND_VALUE         32779
+#define _APS_NEXT_RESOURCE_VALUE        212
+#define _APS_NEXT_COMMAND_VALUE         32783
 #define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

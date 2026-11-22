@@ -26,6 +26,10 @@ public:
 		return m_File.IsDirectory ? IDI_FOLDER : IDI_FILE;
 	}
 	std::wstring GetStatusText() const override;
+	void OnActivate(bool active) override {
+		m_Active = active;
+	}
+	void UpdateUI(CUpdateUIBase& ui) override;
 	void OnDpiChanged(UINT /*dpi*/) override;
 
 	// CVirtualListView
@@ -37,6 +41,8 @@ public:
 		CHAIN_MSG_MAP(CVirtualListView<CFileStreamsView>)
 		CHAIN_MSG_MAP(CViewBase<CFileStreamsView>)
 	ALT_MSG_MAP(1)
+		COMMAND_ID_HANDLER(ID_VIEW_REFRESH, OnRefresh)
+		COMMAND_ID_HANDLER(ID_EDIT_COPY, OnCopy)
 		CHAIN_MSG_MAP_ALT(CViewBase<CFileStreamsView>, 1)
 	END_MSG_MAP()
 
@@ -49,7 +55,14 @@ private:
 	enum class Column { Name, Size };
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnRefresh(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCopy(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	// the streams read again (the list keeps its sorting and, by name, its selection)
+	void Refresh();
 
 	CListViewCtrl m_List;
 	Streams::FileStreams m_File;
+	std::wstring m_Error;	// the last refresh's, shown in the status bar instead
+	bool m_Active{ false };
 };

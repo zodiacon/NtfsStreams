@@ -239,6 +239,18 @@ TEST(ScanFolderFindsFilesWithStreams) {
 	CHECK(Paths(found) == std::vector<std::wstring>{ a });
 }
 
+TEST(ScanFolderCountsAsItGoes) {
+	TempFolder folder;
+	folder.CreateFile(L"a.txt");
+	folder.CreateFile(L"b.txt");
+	folder.CreateFolder(L"sub");
+	folder.CreateFile(L"sub\\c.txt");
+	std::atomic<uint32_t> scanned{ 0 };
+	auto result = ScanFolder(folder.Path, { .Recursive = true, .Scanned = &scanned }, [](FileStreams&&) {});
+	CHECK_EQ(result.Files, 4u);
+	CHECK_EQ(scanned.load(), 4u);
+}
+
 TEST(ScanFolderCanBeCanceled) {
 	TempFolder folder;
 	WriteStream(folder.CreateFile(L"a.txt"), L"s", Bytes("1"));

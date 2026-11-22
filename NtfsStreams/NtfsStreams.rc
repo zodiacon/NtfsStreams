@@ -58,6 +58,11 @@ IDI_FOLDER              ICON                    "res\\folder_document.ico"
 IDI_FOLDER_VIEW         ICON                    "res\\folder_view.ico"
 IDI_VIEW                ICON                    "res\\view.ico"
 IDI_CLOSE               ICON                    "res\\close.ico"
+IDI_REFRESH             ICON                    "res\\Refresh.ico"
+IDI_STOP                ICON                    "res\\stop.ico"
+IDI_SUBFOLDERS          ICON                    "res\\tree.ico"
+IDI_COPY                ICON                    "res\\copy.ico"
+IDI_DELETE              ICON                    "res\\delete.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -83,9 +88,14 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
+    END
     POPUP "&View"
     BEGIN
         MENUITEM "&View Selected Files\tEnter", ID_VIEW_VIEWFILES
+        MENUITEM "&Refresh\tF5",                ID_VIEW_REFRESH
         MENUITEM SEPARATOR
         MENUITEM "Close &Tab\tCtrl+W",          ID_FILE_CLOSE
         MENUITEM "&Close All",                  ID_VIEW_CLOSEALL
@@ -104,6 +114,17 @@ BEGIN
     END
 END
 
+IDR_CONTEXT MENU
+BEGIN
+    POPUP "Folder"
+    BEGIN
+        MENUITEM "&View Streams\tEnter",        ID_VIEW_VIEWFILES
+        MENUITEM SEPARATOR
+        MENUITEM "Open in &Explorer",           ID_FOLDER_OPENINEXPLORER
+        MENUITEM "&Copy Path\tCtrl+C",          ID_EDIT_COPY
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -115,6 +136,8 @@ BEGIN
     "O",            ID_FILE_OPENFILE,       VIRTKEY, CONTROL, NOINVERT
     "O",            ID_FILE_OPENFOLDER,     VIRTKEY, SHIFT, CONTROL, NOINVERT
     "W",            ID_FILE_CLOSE,          VIRTKEY, CONTROL, NOINVERT
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
+    VK_F5,          ID_VIEW_REFRESH,        VIRTKEY, NOINVERT
 END
 
 
@@ -195,6 +218,11 @@ BEGIN
     ID_VIEW_CLOSEALL        "Close all tabs\nClose All"
     ID_VIEW_CLOSEALLBUTTHIS "Close all tabs except the current one\nClose All except Current"
     ID_OPTIONS_DARKMODE     "Switch between dark and light mode\nDark Mode"
+    ID_VIEW_REFRESH         "Read the streams again\nRefresh"
+    ID_FOLDER_SUBFOLDERS    "Look for streams in the folder's subfolders too\nInclude Subfolders"
+    ID_FOLDER_STOP          "Stop the scan\nStop"
+    ID_FOLDER_OPENINEXPLORER "Show the file in Explorer\nOpen in Explorer"
+    ID_EDIT_COPY            "Copy the selection\nCopy"
 END
 
 STRINGTABLE

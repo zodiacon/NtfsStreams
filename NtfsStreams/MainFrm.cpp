@@ -17,11 +17,13 @@ namespace {
 		{ ID_FILE_OPENFOLDER, IDI_FOLDER_VIEW },
 		{ 0 },
 		{ ID_VIEW_VIEWFILES, IDI_VIEW },
+		{ ID_VIEW_REFRESH, IDI_REFRESH },
 		{ ID_VIEW_CLOSEALL, IDI_CLOSE },
 	};
 
 	// the shared image list's icons, in their order there
-	const UINT s_Icons[] = { IDI_FILE, IDI_FOLDER, IDI_FILE_VIEW, IDI_FOLDER_VIEW, IDI_VIEW, IDI_CLOSE };
+	const UINT s_Icons[] = { IDI_FILE, IDI_FOLDER, IDI_FILE_VIEW, IDI_FOLDER_VIEW, IDI_VIEW, IDI_CLOSE, IDI_REFRESH, IDI_STOP,
+		IDI_SUBFOLDERS, IDI_COPY, IDI_DELETE };
 
 	int s_Panes[] = { ID_DEFAULT_PANE, ID_PANE_VIEW };
 
@@ -49,7 +51,8 @@ BOOL CMainFrame::OnIdle() {
 	UIEnable(ID_VIEW_CLOSEALL, count > 0);
 	UIEnable(ID_VIEW_CLOSEALLBUTTHIS, count > 1);
 	// the active view enables its own
-	UIEnable(ID_VIEW_VIEWFILES, false);
+	for (auto id : { ID_VIEW_VIEWFILES, ID_VIEW_REFRESH, ID_EDIT_COPY })
+		UIEnable(id, false);
 	if (m_ActiveView)
 		m_ActiveView->UpdateUI(*this);
 	UIUpdateToolBar();
@@ -346,6 +349,8 @@ void CMainFrame::InitMenu() {
 		{ ID_FILE_OPENFOLDER, IDI_FOLDER_VIEW },
 		{ ID_VIEW_VIEWFILES, IDI_VIEW },
 		{ ID_VIEW_CLOSEALL, IDI_CLOSE },
+		{ ID_VIEW_REFRESH, IDI_REFRESH },
+		{ ID_EDIT_COPY, IDI_COPY },
 	};
 	WTLHelper::InitMenu(GetMenu(), commands, _countof(commands), DpiHelper::SmallIconSize(m_hWnd));
 }

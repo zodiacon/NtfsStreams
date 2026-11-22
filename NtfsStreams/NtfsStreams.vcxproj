@@ -145,6 +145,11 @@
     <Image Include="res\folder_view.ico" />
     <Image Include="res\NtfsStreams.ico" />
     <Image Include="res\view.ico" />
+    <Image Include="res\Refresh.ico" />
+    <Image Include="res\stop.ico" />
+    <Image Include="res\tree.ico" />
+    <Image Include="res\copy.ico" />
+    <Image Include="res\delete.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\wtlhelper\WTLHelper\WTLHelper.vcxproj">

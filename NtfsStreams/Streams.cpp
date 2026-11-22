@@ -41,6 +41,8 @@ namespace {
 				continue;
 
 			result.Files++;
+			if (options.Scanned)
+				options.Scanned->store(result.Files, std::memory_order_relaxed);
 			auto streams = GetStreams(path);
 			if (!streams) {
 				result.Errors++;
