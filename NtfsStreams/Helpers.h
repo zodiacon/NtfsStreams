@@ -18,4 +18,9 @@ namespace Helpers {
 	bool RemoveRecent(std::vector<std::wstring>& list, std::wstring const& path);
 	// a menu item's text: "&1 C:\a&&b.txt" (the number a mnemonic, '&' doubled)
 	std::wstring RecentMenuText(size_t index, std::wstring const& path);
+
+	// paths in one string, each ending with a null (WM_COPYDATA's payload: paths from another instance), and back;
+	// size in bytes, as WM_COPYDATA has it. Empty paths are left out
+	std::wstring JoinPaths(std::vector<std::wstring> const& paths);
+	std::vector<std::wstring> SplitPaths(const void* data, size_t size);
 }

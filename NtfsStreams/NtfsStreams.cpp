@@ -4,12 +4,43 @@
 #include "pch.h"
 #include "MainFrm.h"
 #include "AppSettings.h"
+#include "Helpers.h"
 #include <WTLHelper.h>
 
 CAppModule _Module;
 AppSettings _Settings;
 
-static int Run(int nCmdShow) {
+namespace {
+	// NtfsStreams.exe [path...]: each a file or a folder to open (full paths: another instance has another current folder)
+	std::vector<std::wstring> GetCommandLinePaths() {
+		std::vector<std::wstring> paths;
+		int argc = 0;
+		if (auto argv = ::CommandLineToArgvW(::GetCommandLine(), &argc); argv) {
+			for (int i = 1; i < argc; i++)
+				paths.push_back(Helpers::NormalizePath(argv[i]));
+			::LocalFree(argv);
+		}
+		return paths;
+	}
+
+	// paths go to a running instance (Explorer's menu starts one each time): true if one took them
+	bool SendToRunningInstance(std::vector<std::wstring> const& paths) {
+		auto hWnd = ::FindWindow(CMainFrame::WindowClassName, nullptr);
+		if (!hWnd)
+			return false;
+		// it may come to the front: this process may let it, as the user just started this one
+		DWORD pid = 0;
+		::GetWindowThreadProcessId(hWnd, &pid);
+		::AllowSetForegroundWindow(pid);
+		auto data = Helpers::JoinPaths(paths);
+		COPYDATASTRUCT cds{ CMainFrame::CopyDataPaths, DWORD(data.size() * sizeof(WCHAR)), data.data() };
+		DWORD_PTR result = 0;
+		// a hung instance (or one that doesn't know the message): this one opens them
+		return ::SendMessageTimeout(hWnd, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&cds), SMTO_ABORTIFHUNG, 5000, &result) && result;
+	}
+}
+
+static int Run(int nCmdShow, std::vector<std::wstring> const& paths) {
 	CMessageLoop theLoop;
 	_Module.AddMessageLoop(&theLoop);
 
@@ -29,19 +60,7 @@ static int Run(int nCmdShow) {
 	if (!settings.LoadWindowPosition(wndMain, AppSettings::MainWindowPlacement))
 		wndMain.ShowWindow(nCmdShow);
 
-	// NtfsStreams.exe [path...]: each a file or a folder to open, the first one shown
-	int argc = 0;
-	if (auto argv = ::CommandLineToArgvW(::GetCommandLine(), &argc); argv) {
-		bool first = true;
-		for (int i = 1; i < argc; i++) {
-			auto attributes = ::GetFileAttributes(argv[i]);
-			bool opened = attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) ?
-				wndMain.OpenFolder(argv[i]) : wndMain.OpenFile(argv[i], first);
-			if (opened)
-				first = false;
-		}
-		::LocalFree(argv);
-	}
+	wndMain.OpenPaths(paths);
 
 	int nRet = theLoop.Run();
 
@@ -50,6 +69,11 @@ static int Run(int nCmdShow) {
 }
 
 int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR /*lpstrCmdLine*/, int nCmdShow) {
+	// paths with a window open already: that one shows them (without paths, a new window)
+	auto paths = GetCommandLinePaths();
+	if (!paths.empty() && SendToRunningInstance(paths))
+		return 0;
+
 	HRESULT hRes = ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 	ATLASSERT(SUCCEEDED(hRes));
 
@@ -63,7 +87,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR /*
 	else
 		WTLHelper::InitDarkMode();
 
-	int nRet = Run(nCmdShow);
+	int nRet = Run(nCmdShow, paths);
 
 	_Module.Term();
 	::CoUninitialize();

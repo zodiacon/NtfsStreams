@@ -74,6 +74,34 @@ std::wstring Helpers::RecentMenuText(size_t index, std::wstring const& path) {
 	return (index < 9 ? std::format(L"&{} ", index + 1) : std::format(L"{} ", index + 1)) + escaped;
 }
 
+std::wstring Helpers::JoinPaths(std::vector<std::wstring> const& paths) {
+	std::wstring joined;
+	for (auto& p : paths) {
+		if (p.empty())
+			continue;
+		joined += p;
+		joined += L'\0';
+	}
+	return joined;
+}
+
+std::vector<std::wstring> Helpers::SplitPaths(const void* data, size_t size) {
+	std::vector<std::wstring> paths;
+	if (!data)
+		return paths;
+	std::wstring_view text(static_cast<const wchar_t*>(data), size / sizeof(wchar_t));
+	while (!text.empty()) {
+		auto end = text.find(L'\0');
+		auto path = text.substr(0, end);
+		if (!path.empty())
+			paths.emplace_back(path);
+		if (end == std::wstring_view::npos)
+			break;
+		text.remove_prefix(end + 1);
+	}
+	return paths;
+}
+
 std::wstring Helpers::FileName(std::wstring const& path) {
 	auto pos = path.find_last_of(L"\\/");
 	if (pos == std::wstring::npos || pos == path.size() - 1)

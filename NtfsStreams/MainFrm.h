@@ -36,6 +36,30 @@ public:
 			escaped.pop_back();
 		::wcscpy_s(lpstrShortTitle, cchShortTitle, (escaped + L"...").c_str());
 	}
+
+	// a tab's tooltip: the view's full path (the title may be shortened), from the frame
+	std::function<std::wstring(int page)> TooltipText;
+
+	void UpdateTooltipText(LPNMTTDISPINFO info) {
+		if (TooltipText) {
+			m_Tooltip = TooltipText((int)info->hdr.idFrom);
+			if (!m_Tooltip.empty()) {
+				info->lpszText = m_Tooltip.data();
+				return;
+			}
+		}
+		CNativeCustomTabViewImpl::UpdateTooltipText(info);
+	}
+
+	// after Create: a tooltip takes '&' for a mnemonic too, which a path shouldn't lose
+	void InitTooltips() {
+		CToolTipCtrl tip(m_tab.GetToolTips());
+		if (tip)
+			tip.ModifyStyle(0, TTS_NOPREFIX);
+	}
+
+private:
+	std::wstring m_Tooltip;
 };
 
 //
@@ -50,7 +74,7 @@ class CMainFrame :
 	public CMessageFilter,
 	public CIdleHandler {
 public:
-	DECLARE_FRAME_WND_CLASS(L"NtfsStreamsFrame", IDR_MAINFRAME)
+	DECLARE_FRAME_WND_CLASS(WindowClassName, IDR_MAINFRAME)
 
 	BOOL PreTranslateMessage(MSG* pMsg) override;
 	BOOL OnIdle() override;
@@ -71,6 +95,17 @@ public:
 	bool OpenFile(std::wstring const& path, bool activate = true) override;
 
 	bool OpenFolder(std::wstring const& path);
+	// each a folder (a folder tab) or a file (a file tab); the first one opened is the one shown
+	void OpenPaths(std::vector<std::wstring> const& paths);
+
+	// WM_COPYDATA's dwData from another instance: lpData has paths to open (Helpers::JoinPaths)
+	static constexpr ULONG_PTR CopyDataPaths = 0x4E545331;	// 'NTS1'
+	// the window class another instance looks for
+	static constexpr PCWSTR WindowClassName = L"NtfsStreamsFrame";
+	// posted to itself with paths from WM_COPYDATA (lParam: a new std::vector<std::wstring>, the receiver's to delete)
+	static constexpr UINT WM_OPEN_PATHS = WM_APP + 10;
+
+	static std::wstring ExePath();
 
 	BEGIN_MSG_MAP(CMainFrame)
 		COMMAND_TABVIEW_HANDLER(m_Tabs, 1)
@@ -79,6 +114,9 @@ public:
 		MESSAGE_HANDLER(WM_CLOSE, OnClose)
 		MESSAGE_HANDLER(WM_ENDSESSION, OnEndSession)
 		MESSAGE_HANDLER(WM_DPICHANGED, OnDpiChanged)
+		MESSAGE_HANDLER(WM_DROPFILES, OnDropFiles)
+		MESSAGE_HANDLER(WM_COPYDATA, OnCopyData)
+		MESSAGE_HANDLER(WM_OPEN_PATHS, OnOpenPaths)
 		NOTIFY_CODE_HANDLER(TBVN_PAGEACTIVATED, OnPageActivated)
 		NOTIFY_CODE_HANDLER(TBVN_TABCLOSEBTN, OnTabClose)
 		COMMAND_ID_HANDLER(ID_APP_EXIT, OnFileExit)
@@ -93,6 +131,7 @@ public:
 		COMMAND_ID_HANDLER(ID_VIEW_STATUS_BAR, OnViewStatusBar)
 		COMMAND_ID_HANDLER(ID_OPTIONS_DARKMODE, OnDarkMode)
 		COMMAND_ID_HANDLER(ID_OPTIONS_KEEPFILETIMES, OnKeepFileTimes)
+		COMMAND_ID_HANDLER(ID_OPTIONS_EXPLORERMENU, OnExplorerMenu)
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		CHAIN_MSG_MAP(CAutoUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(CFrameWindowImpl<CMainFrame>)
@@ -108,6 +147,12 @@ private:
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 	LRESULT OnEndSession(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDpiChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
+	// files and folders dropped on the window (from Explorer)
+	LRESULT OnDropFiles(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	// paths from another instance (Explorer's menu started it): opened here, the window brought to the front
+	LRESULT OnCopyData(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnOpenPaths(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnExplorerMenu(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnPageActivated(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/);
 	LRESULT OnTabClose(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/);
 	LRESULT OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

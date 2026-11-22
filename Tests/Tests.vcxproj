@@ -76,6 +76,8 @@
     <ClCompile Include="HelpersTests.cpp" />
     <ClCompile Include="ViewDataTests.cpp" />
     <ClCompile Include="EditTests.cpp" />
+    <ClCompile Include="ShellTests.cpp" />
+    <ClCompile Include="..\NtfsStreams\ExplorerMenu.cpp" />
     <!-- the app's sources under test, compiled with this project's pch (the app's) -->
     <ClCompile Include="..\NtfsStreams\Streams.cpp" />
     <ClCompile Include="..\NtfsStreams\Helpers.cpp" />

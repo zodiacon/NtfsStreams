@@ -6,6 +6,7 @@
 #include "Streams.h"
 #include "FileStreamsView.h"
 #include "FolderView.h"
+#include "ExplorerMenu.h"
 #include <WTLHelper.h>
 #include <ToolbarHelper.h>
 #include <IconHelper.h>
@@ -83,6 +84,17 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 
 	m_hWndClient = m_Tabs.Create(m_hWnd, rcDefault, nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, WS_EX_CLIENTEDGE);
 	m_Tabs.SetImageList(m_Images);
+	m_Tabs.InitTooltips();
+	m_Tabs.TooltipText = [this](int page) {
+		auto view = GetView(page);
+		return view ? view->GetPath() : std::wstring();
+	};
+
+	// files dropped from Explorer, and paths from another instance; elevated, those come from a lower integrity level,
+	// which the messages must be let through from (WM_COPYGLOBALDATA carries a drop's data)
+	DragAcceptFiles(TRUE);
+	for (UINT msg : { (UINT)WM_DROPFILES, (UINT)WM_COPYDATA, 0x0049u /* WM_COPYGLOBALDATA */ })
+		::ChangeWindowMessageFilterEx(m_hWnd, msg, MSGFLT_ALLOW, nullptr);
 
 	GetWindowText(m_Caption);
 	if (IsRunningElevated())
@@ -102,9 +114,75 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	ShowStatusBar(settings.StatusBar());
 	UISetCheck(ID_OPTIONS_DARKMODE, settings.DarkMode());
 	UISetCheck(ID_OPTIONS_KEEPFILETIMES, settings.KeepFileTimes());
+	UISetCheck(ID_OPTIONS_EXPLORERMENU, ExplorerMenu::IsRegistered(ExePath()));
 	SetDarkMode(settings.DarkMode());
 
 	return 0;
+}
+
+void CMainFrame::OpenPaths(std::vector<std::wstring> const& paths) {
+	bool first = true;
+	for (auto& path : paths) {
+		auto attributes = ::GetFileAttributes(path.c_str());
+		bool opened = attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) ? OpenFolder(path) : OpenFile(path, first);
+		if (opened)
+			first = false;
+	}
+}
+
+LRESULT CMainFrame::OnDropFiles(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	auto hDrop = reinterpret_cast<HDROP>(wParam);
+	std::vector<std::wstring> paths;
+	auto count = ::DragQueryFile(hDrop, 0xFFFFFFFF, nullptr, 0);
+	for (UINT i = 0; i < count; i++) {
+		std::wstring path(::DragQueryFile(hDrop, i, nullptr, 0), 0);
+		::DragQueryFile(hDrop, i, path.data(), (UINT)path.size() + 1);
+		paths.push_back(std::move(path));
+	}
+	::DragFinish(hDrop);
+	SetForegroundWindow(m_hWnd);
+	OpenPaths(paths);
+	return 0;
+}
+
+LRESULT CMainFrame::OnCopyData(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled) {
+	auto cds = reinterpret_cast<COPYDATASTRUCT const*>(lParam);
+	if (cds->dwData != CopyDataPaths) {
+		bHandled = FALSE;
+		return 0;
+	}
+	auto paths = Helpers::SplitPaths(cds->lpData, cds->cbData);
+	// the sender waits for the answer: the paths are opened after it (an error's message box would keep it waiting)
+	auto copy = new std::vector<std::wstring>(std::move(paths));
+	if (!PostMessage(WM_OPEN_PATHS, 0, reinterpret_cast<LPARAM>(copy)))
+		delete copy;
+	return TRUE;
+}
+
+LRESULT CMainFrame::OnOpenPaths(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
+	std::unique_ptr<std::vector<std::wstring>> paths(reinterpret_cast<std::vector<std::wstring>*>(lParam));
+	// to the front, as a new window would have been
+	if (IsIconic())
+		ShowWindow(SW_RESTORE);
+	SetForegroundWindow(m_hWnd);
+	OpenPaths(*paths);
+	return 0;
+}
+
+LRESULT CMainFrame::OnExplorerMenu(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/) {
+	auto exe = ExePath();
+	bool registered = ExplorerMenu::IsRegistered(exe);
+	auto error = registered ? ExplorerMenu::Unregister() : ExplorerMenu::Register(exe);
+	if (error != ERROR_SUCCESS)
+		ShowError(std::format(L"Changing Explorer's menu failed.\n\n{}", Helpers::ErrorText(error)));
+	UISetCheck(ID_OPTIONS_EXPLORERMENU, ExplorerMenu::IsRegistered(exe));
+	return 0;
+}
+
+std::wstring CMainFrame::ExePath() {
+	WCHAR path[MAX_PATH * 2];
+	::GetModuleFileName(nullptr, path, _countof(path));
+	return path;
 }
 
 LRESULT CMainFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled) {

@@ -126,6 +126,8 @@ BEGIN
     BEGIN
         MENUITEM "&Dark Mode",                  ID_OPTIONS_DARKMODE
         MENUITEM "&Keep File Times When Changing Streams", ID_OPTIONS_KEEPFILETIMES
+        MENUITEM SEPARATOR
+        MENUITEM "Add to &Explorer's Context Menu", ID_OPTIONS_EXPLORERMENU
     END
     POPUP "&Help"
     BEGIN
@@ -325,6 +327,7 @@ BEGIN
     ID_FOLDER_UNBLOCK       "Remove the Zone.Identifier stream (the mark of the web) from the selected files\nUnblock"
     ID_FOLDER_DELETESTREAMS "Delete all the alternate streams of the selected files\nDelete All Streams"
     ID_OPTIONS_KEEPFILETIMES "Put the files' times back after their streams change\nKeep File Times"
+    ID_OPTIONS_EXPLORERMENU "Add View NTFS Streams to Explorer's menu for files and folders (on Windows 11: Show more options)\nExplorer Menu"
 END
 
 STRINGTABLE

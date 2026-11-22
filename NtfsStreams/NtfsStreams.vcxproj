@@ -109,6 +109,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AboutDlg.cpp" />
+    <ClCompile Include="ExplorerMenu.cpp" />
     <ClCompile Include="FileStreamsView.cpp" />
     <ClCompile Include="FolderView.cpp" />
     <ClCompile Include="Helpers.cpp" />
@@ -126,6 +127,7 @@
   <ItemGroup>
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="AppSettings.h" />
+    <ClInclude Include="ExplorerMenu.h" />
     <ClInclude Include="FileStreamsView.h" />
     <ClInclude Include="FolderView.h" />
     <ClInclude Include="Helpers.h" />

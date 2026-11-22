@@ -66,6 +66,7 @@
 #define ID_FOLDER_UNBLOCK               32809
 #define ID_FOLDER_DELETESTREAMS         32810
 #define ID_OPTIONS_KEEPFILETIMES        32811
+#define ID_OPTIONS_EXPLORERMENU         32812
 // the status bar pane with the active view's summary
 #define ID_PANE_VIEW                    33000
 // File > Recent Files and Recent Folders: up to MaxRecent each
@@ -79,7 +80,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        212
-#define _APS_NEXT_COMMAND_VALUE         32812
+#define _APS_NEXT_COMMAND_VALUE         32813
 #define _APS_NEXT_CONTROL_VALUE         1009
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
