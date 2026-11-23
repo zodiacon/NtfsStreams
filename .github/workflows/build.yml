@@ -1,5 +1,6 @@
 # Builds the solution (Debug and Release x64) and runs the tests (Tests\Tests.vcxproj).
 # The image has Visual Studio 2026, whose only C++ toolset is v145, the projects'.
+# ReleaseSigned isn't built: it signs with a certificate the runner doesn't have.
 name: Build and test
 
 on:

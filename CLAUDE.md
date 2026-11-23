@@ -26,6 +26,8 @@ x64\Debug\Tests.exe            # all the tests; Tests.exe Rename: those whose na
 Dependencies come from vcpkg with user-wide integration: WIL, Detours and WTL. The app, the tests, WTLHelper and
 HexControl all set `VcpkgUseStatic` (the static triplet, `x64-windows-static`). CI (`.github/workflows/build.yml`) builds
 Debug and Release x64 and runs the tests on every push and pull request to `master`.
+`ReleaseSigned` (x64) is Release with the exe signed after the build (`signtool`, the Scorpio certificate, timestamped);
+WTLHelper and HexControl build as Release in it, the tests and AltStream not at all. CI doesn't build it.
 
 `Tests\Tests.vcxproj` is a console runner of its own (`TestFramework.h`: `TEST`, `CHECK`, `CHECK_EQ`; the exit code is
 the number of failed tests). Its precompiled header is the app's `pch.h`, and it compiles the app's non-UI sources
